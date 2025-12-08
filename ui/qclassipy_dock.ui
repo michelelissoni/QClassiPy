@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QClassiPyDockWidget</class>
+ <widget class="QgsDockWidget" name="QClassiPyDockWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>461</width>
+    <height>539</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>QClassiPy</string>
+  </property>
+  <widget class="QWidget" name="dockWidgetContents">
+   <property name="maximumSize">
+    <size>
+     <width>461</width>
+     <height>16777215</height>
+    </size>
+   </property>
+   <widget class="QTabWidget" name="plugin_tabs">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>9</y>
+      <width>443</width>
+      <height>496</height>
+     </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>443</width>
+      <height>502</height>
+     </size>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <property name="tabBarAutoHide">
+     <bool>false</bool>
+    </property>
+    <widget class="QWidget" name="create_tiles_tab">
+     <attribute name="title">
+      <string>Create tiles</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="draw_mask_tab">
+     <attribute name="title">
+      <string>Draw mask</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="merge_mask_tab">
+     <attribute name="title">
+      <string>Merge masks</string>
+     </attribute>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>335</x>
+      <y>0</y>
+      <width>120</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <widget class="QLabel" name="closing_label">
+     <property name="geometry">
+      <rect>
+       <x>25</x>
+       <y>12</y>
+       <width>71</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#0002ff;&quot;&gt;Closing...&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="switching_label">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>0</y>
+       <width>81</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#0002ff;&quot;&gt;Switching...&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsDockWidget</class>
+   <extends>QDockWidget</extends>
+   <header>qgsdockwidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
