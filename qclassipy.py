@@ -11,6 +11,7 @@ from qgis.PyQt.QtCore import Qt
 
 from .gui.constants import Directories
 
+layer_dir = Directories.Layer
 icon_dir = Directories.Icon
 font_dir = Directories.Font
 
@@ -169,7 +170,12 @@ class QClassiPy:
             msg.exec_()
             
             return
-        
+            
+        browsedir_path = os.path.join(layer_dir, 'browsedir.txt')
+        if not os.path.exists(browsedir_path):
+            with open(browsedir_path, 'w') as outfile:
+                outfile.write('')
+                        
         from .gui.dock_widget import QClassiPyDockWidget
 
         self.dock = QClassiPyDockWidget(tab_clicked = action_clicked, font = self.best_font)

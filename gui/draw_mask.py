@@ -170,7 +170,14 @@ class QClassiPyDrawMask(QWidget):
         for filename in np.unique(file_df['filename']):
             
             filename = str(filename)
-            valid = valid and os.path.exists(filename)
+            filename_exists = os.path.exists(filename)
+            try:
+                gdal.Open(filename)
+                filename_opens = True
+            except:
+                filename_opens = False
+            
+            valid = valid and filename_exists and filename_opens 
             
         return valid, valid_except_filename, img_coords_present, file_df
         

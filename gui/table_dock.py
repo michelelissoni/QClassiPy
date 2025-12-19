@@ -116,7 +116,8 @@ class TableDockFrames(TableDock):
         layer_name = 'frames'
         
         driver = ogr.GetDriverByName("GPKG")
-        driver.DeleteDataSource(frame_file)
+        if os.path.exists(frame_file):
+            driver.DeleteDataSource(frame_file)
         ds = driver.CreateDataSource(frame_file)
         
         for i in range(0, len(filenames)):
