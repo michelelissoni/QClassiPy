@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QFileDialog, QColorDialog, QMessageBox, QInputDialog
-from PyQt5.QtGui import QColor
+from qgis.PyQt.QtCore import Qt, QMetaType, QVariant
+from qgis.PyQt.QtWidgets import QWidget, QFileDialog, QColorDialog, QMessageBox, QInputDialog
+from qgis.PyQt.QtGui import QColor, QFont
 
 from qgis.core import *
 import qgis.utils
@@ -19,22 +19,33 @@ from ..core.gdal_tools import rasterizeLayer
 from .table_dock import TableDockFrames
 from ..ui.all_uis import Ui_QClassiPyDrawMask
 
-COMPLETED_PRIORITY = 0
+from .constants import Directories, Priorities, Colors
+
+COMPLETED_PRIORITY = Priorities.Completed
+
+layer_dir = Directories.Layer
+
+default_color = Colors.Default
+null_color = QColor(default_color)
+null_color.setAlpha(0)
+frame_color = Colors.Frame
+qcolorlist = Colors.Colorlist
+
 '''        
 def priorityChoice(df, priority_col = 'priority', avoid = COMPLETED_PRIORITY, must=1):
 
-    if(not(np.isin(priority_col, list(df.columns)))):
+    if not np.isin(priority_col, list(df.columns)) :
         raise ValueError("The dataframe should contain at least the priority_col column.")
         
     df_indices = np.arange(len(df), dtype=int)
     
-    if(avoid is not None and avoid!=must):
+    if avoid is not None and avoid!=must :
         df_indices = np.flatnonzero(df[priority_col]!=avoid)
         df = df.iloc[df_indices, :]
-    elif(avoid is not None and avoid==must):
+    elif avoid is not None and avoid==must :
         raise ValueError("'avoid' and 'must' must be different.")
         
-    if(must is not None and np.sum(df[priority_col]==must)>0):
+    if must is not None and np.sum(df[priority_col] == must) > 0):
         df = df.loc[df[priority_col]==must, :]
         df_indices = df_indices[np.flatnonzero(df[priority_col]==must)]
         random_index = df_indices[np.argsort(np.random.rand(len(df)))[0]]
@@ -49,22 +60,19 @@ def priorityChoice(df, priority_col = 'priority', avoid = COMPLETED_PRIORITY, mu
         
     return random_index    
 '''        
-plugin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),'..')
-layer_dir = os.path.join(plugin_dir,'layers')
-gui_dir = os.path.join(plugin_dir,'gui')
-icon_dir = os.path.join(plugin_dir, 'icons')
-ui_dir = os.path.join(plugin_dir, 'ui')
-
-qcolorlist = np.array([QColor(colorstr) for colorstr in np.loadtxt(os.path.join(gui_dir, 'colorlist.txt'), dtype=str)])
 
 class QClassiPyDrawMask(QWidget):
     
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, font = QFont()):
     
         super(QClassiPyDrawMask, self).__init__(parent = parent)
         
         self.ui = Ui_QClassiPyDrawMask()
         self.ui.setupUi(self)
+
+        self.best_font = font
+        for child_widget in self.findChildren(QWidget):
+            child_widget.setFont(font)
         
         self.just_started = True
         self.ui.classify_box.setEnabled(False)
@@ -101,7 +109,7 @@ class QClassiPyDrawMask(QWidget):
     
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "")
         browse_dir = os.path.split(fname)[0]
-        if(os.path.isdir(browse_dir)):
+        if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
             
         self.ui.img_fileload.setText(fname)
@@ -116,7 +124,7 @@ class QClassiPyDrawMask(QWidget):
     
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "CSV (*.csv)")
         browse_dir = os.path.split(fname)[0]
-        if(os.path.isdir(browse_dir)):
+        if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
             
         self.ui.list_load.setText(fname)
@@ -141,7 +149,7 @@ class QClassiPyDrawMask(QWidget):
         except:
             return False, False, False, None
         
-        if(not(all(np.isin(['filename','priority'], list(file_df.columns))))):
+        if not all( np.isin(['filename','priority'], list(file_df.columns)) ):
             return False, False, False, file_df
             
         img_coords_present = all(np.isin(['x', 'y', 'width', 'height'], list(file_df.columns)))
@@ -149,13 +157,13 @@ class QClassiPyDrawMask(QWidget):
         valid = True
         valid_except_filename = True
         
-        if(img_coords_present):
+        if img_coords_present :
             x_type = file_df['x'].to_numpy().dtype
             y_type = file_df['y'].to_numpy().dtype
             width_type = file_df['width'].to_numpy().dtype
             height_type = file_df['height'].to_numpy().dtype
             
-            if(not(np.issubdtype(x_type, np.integer) and np.issubdtype(y_type, np.integer) and np.issubdtype(width_type, np.integer) and np.issubdtype(height_type, np.integer))):
+            if not(np.issubdtype(x_type, np.integer) and np.issubdtype(y_type, np.integer) and np.issubdtype(width_type, np.integer) and np.issubdtype(height_type, np.integer)) :
                 valid = False
                 valid_except_filename = False
         
@@ -175,14 +183,14 @@ class QClassiPyDrawMask(QWidget):
         list_filename = self.ui.list_load.text()
         valid, valid_except_filename, coords_present, file_df = self.listCheck(list_filename)
         
-        if(not(valid_except_filename)):
+        if not valid_except_filename :
             self.ui.list_err.setHidden(False)
             return
             
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "")
         
         browse_dir = os.path.split(fname)[0]
-        if(os.path.isdir(browse_dir)):
+        if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
             
         file_df['filename'] = fname
@@ -196,7 +204,7 @@ class QClassiPyDrawMask(QWidget):
         list_filename = self.ui.list_load.text()
         valid, coords_present, file_df = self.listCheck(list_filename)
         
-        if(not(valid)):
+        if not valid :
             self.ui.list_err.setHidden(False)
             return
         else:
@@ -213,8 +221,8 @@ class QClassiPyDrawMask(QWidget):
         list_filename = self.ui.list_load.text()
         valid, valid_except_filename, coords_present, file_df = self.listCheck(list_filename)
         
-        if(not(valid)):
-            if(valid_except_filename):
+        if not valid :
+            if valid_except_filename :
                 self.ui.list_path_err.setHidden(False)
             else:
                 self.ui.list_err.setHidden(False)
@@ -223,15 +231,8 @@ class QClassiPyDrawMask(QWidget):
         else:
             self.ui.list_err.setHidden(True)
             self.ui.list_path_err.setHidden(True)
-            
-        import importlib
-        from ..gui import table_dock
-        importlib.reload(table_dock)
-        from ..gui.table_dock import TableDockFrames  
         
-        self.manual_table = TableDockFrames(file_df, avoid_value = COMPLETED_PRIORITY)
-
-        #manual_table.setWindowModality(2)
+        self.manual_table = TableDockFrames(file_df, avoid_value = COMPLETED_PRIORITY, font = self.best_font)
         
         self.manual_table.finished.connect(lambda: self.finishLoad(self.manual_table.getRow(), file_df, coords_present, list_filename))
         qgis.utils.iface.actionSelectRectangle().trigger()
@@ -241,7 +242,6 @@ class QClassiPyDrawMask(QWidget):
         self.ui.classify_box.setEnabled(False)
         
         qgis.utils.iface.addDockWidget(Qt.RightDockWidgetArea, self.manual_table)
-        #manual_table.open()
         
     def finishLoad(self, row_num, file_df, coords_present, list_filename):
     
@@ -249,15 +249,15 @@ class QClassiPyDrawMask(QWidget):
         self.ui.img_load_group.setEnabled(True)
         self.ui.list_load_group.setEnabled(True)
     
-        if(row_num is None):
-            if(not(self.just_started)):
+        if row_num is None :
+            if not self.just_started :
                 self.ui.classify_box.setEnabled(True)
             self.ui.list_manual.clicked.connect(self.loadManual)
             return    
 
         filename = file_df['filename'].iloc[row_num]
         
-        if(coords_present):
+        if coords_present :
             self.ui.img_X_edit.setText(str(file_df['x'].iloc[row_num]))
             self.ui.img_Y_edit.setText(str(file_df['y'].iloc[row_num]))
             self.ui.img_width_edit.setText(str(file_df['width'].iloc[row_num]))
@@ -277,18 +277,13 @@ class QClassiPyDrawMask(QWidget):
         
     def reset(self, img_filename):
     
-        import importlib
-        from ..core import polyimage
-        importlib.reload(polyimage)
-        from ..core.polyimage import PolyImage
-
-    
-        if(not(self.just_started)):
+        if not self.just_started :
             dismantled = self.dismantle()
-            if(not(dismantled)):
+            if not dismantled  :
                 return
 
         try:
+            assert os.path.exists(img_filename)
             img_ds = gdal.Open(img_filename)
             self.ui.file_err.setHidden(True)
         except:
@@ -303,7 +298,7 @@ class QClassiPyDrawMask(QWidget):
         width_string = self.ui.img_width_edit.text()
         
         self.ui.coord_err.setHidden(True)
-        if(X_string!='' and Y_string!='' and height_string!='' and width_string!=''):
+        if X_string!='' and Y_string!='' and height_string!='' and width_string!='' :
             try:
                 self.img_X = int(X_string)
                 self.img_Y = int(Y_string)
@@ -323,45 +318,45 @@ class QClassiPyDrawMask(QWidget):
             self.ui.img_height_edit.setText(str(img_ds.RasterYSize))
             self.ui.img_width_edit.setText(str(img_ds.RasterXSize))
 
-        #try:
-        array = img_ds.ReadAsArray(self.img_X, self.img_Y, self.img_width, self.img_height)
-        if(img_ds.RasterCount==1 and len(array.shape)==2):
-            array = array[np.newaxis, :, :]
-        
-        transform = img_ds.GetGeoTransform()
-        top_left_x = transform[0] + transform[1]*self.img_X + transform[2]*self.img_Y
-        top_left_y = transform[3] + transform[4]*self.img_X + transform[5]*self.img_Y
-        transform = (top_left_x, transform[1], transform[2], top_left_y, transform[4], transform[5])
-        
-        shape = (self.img_height, self.img_width)
-        
-        crs = img_ds.GetProjection()
-        metadata = img_ds.GetMetadata()
-        
-        band_names = list()
-        for i in range(0,img_ds.RasterCount):
-            band_name = img_ds.GetRasterBand(i+1).GetDescription()
-            band_name = str(i+1) if band_name=="" else band_name
-            assert band_name not in band_names
-            band_names.append(band_name)
-        
-        self.poly_img = PolyImage(array, transform, crs, metadata = metadata, band_names = band_names)
-        
-        img_ds = None
+        try:
+            array = img_ds.ReadAsArray(self.img_X, self.img_Y, self.img_width, self.img_height)
+            if img_ds.RasterCount == 1 and len(array.shape) == 2 :
+                array = array[np.newaxis, :, :]
             
-        #except:
-        #    self.ui.coord_err.setHidden(False)
-        #    return    
-                
+            transform = img_ds.GetGeoTransform()
+            top_left_x = transform[0] + transform[1]*self.img_X + transform[2]*self.img_Y
+            top_left_y = transform[3] + transform[4]*self.img_X + transform[5]*self.img_Y
+            transform = (top_left_x, transform[1], transform[2], top_left_y, transform[4], transform[5])
+            
+            shape = (self.img_height, self.img_width)
+            
+            crs = img_ds.GetProjection()
+            metadata = img_ds.GetMetadata()
+            
+            band_names = list()
+            for i in range(0,img_ds.RasterCount):
+                band_name = img_ds.GetRasterBand(i+1).GetDescription()
+                band_name = str(i+1) if band_name=="" else band_name
+                assert band_name not in band_names
+                band_names.append(band_name)
+            
+            self.poly_img = PolyImage(array, transform, crs, metadata = metadata, band_names = band_names)
+            
+            img_ds = None
+            
+        except:
+            self.ui.coord_err.setHidden(False)
+            return 
+            
         self.just_started = False
         self.img_saved = True
         self.ui.classify_box.setEnabled(True)
         
         self.type_img = np.dtype(self.poly_img.dtype).type
         
-        if(np.issubdtype(self.type_img, np.integer)):
+        if np.issubdtype(self.type_img, np.integer) :
             self.type_qgis = int
-        elif(np.issubdtype(self.type_img, np.floating)):
+        elif np.issubdtype(self.type_img, np.floating) :
             self.type_qgis = float
         
         band_names = self.poly_img.band_names
@@ -382,7 +377,7 @@ class QClassiPyDrawMask(QWidget):
         
         self.layer.selectionChanged.connect(self.drawSelection)
         self.ui.layer_select.toggled.connect(self.layerSelection)
-        self.ui.layer_poly.toggled.connect(self.layerPoly)
+        self.ui.layer_poly.toggled.connect(lambda: self.layerPoly(commit = True))
         self.ui.layer_brush.toggled.connect(self.layerBrush)
         self.ui.layer_erase.toggled.connect(self.layerBrush)
         
@@ -400,7 +395,7 @@ class QClassiPyDrawMask(QWidget):
             
         for band_name in band_names:
         
-            if(band_name in band_values_dict):
+            if band_name in band_values_dict :
                 band_categories = band_values_dict[band_name]
                 band_values = list(band_categories.keys())
             else:
@@ -417,20 +412,20 @@ class QClassiPyDrawMask(QWidget):
                 
                 categories.loc[(band_name, band_value), 'index'] = int(combo_index)
                 categories.loc[(band_name, band_value), 'def'] = str(band_categories[band_value][0])
-                null_band_value = bool(band_categories[band_value][2]) and not(null_value_appeared)
+                null_band_value = bool(band_categories[band_value][2]) and not null_value_appeared
                 
-                categories.loc[(band_name, band_value), 'color'] = QColor(str(band_categories[band_value][1])) if not(null_band_value) else QColor("white")
+                categories.loc[(band_name, band_value), 'color'] = QColor(str(band_categories[band_value][1])) if not null_band_value else QColor(null_color)
                 categories.loc[(band_name, band_value), 'null'] = null_band_value
-                if(null_band_value):
+                if null_band_value :
                     null_value = band_value
                 
                 null_value_appeared = null_value_appeared or null_band_value
                 
                 combo_index+=1
                 
-            if(not(null_value_appeared)):
+            if not null_value_appeared :
                 null_value = self.type_img(0) if 0 not in band_values else self.type_img(np.amax(band_values)+1)
-                categories.loc[(band_name,null_value), ['def', 'index', 'color', 'null']] = ['NULL', int(combo_index), QColor("white"), True]
+                categories.loc[(band_name,null_value), ['def', 'index', 'color', 'null']] = ['NULL', int(combo_index), QColor(null_color), True]
                 other_band_values = other_band_values[other_band_values!=null_value]
                 combo_index += 1
                 
@@ -440,7 +435,7 @@ class QClassiPyDrawMask(QWidget):
             
                 categories.loc[(band_name, band_value), 'def'] = ''
                 categories.loc[(band_name, band_value), 'index'] = int(combo_index)
-                categories.loc[(band_name, band_value), 'color'] = qcolorlist_update[i]
+                categories.loc[(band_name, band_value), 'color'] = QColor(qcolorlist_update[i])
                 categories.loc[(band_name, band_value), 'null'] = False
                 combo_index += 1
                 
@@ -461,7 +456,7 @@ class QClassiPyDrawMask(QWidget):
         self.ui.draw_value_def.currentIndexChanged.connect(self.changeOfValueCombo)
         self.ui.draw_value_def.lineEdit().editingFinished.connect(self.changeOfDef)
         
-        if(self.draw_value==self.null_value):
+        if self.draw_value == self.null_value :
             self.setColorStyle()
         else:
             draw_color = self.categories.loc[(band_names[0], self.draw_value),'color']
@@ -492,9 +487,11 @@ class QClassiPyDrawMask(QWidget):
         frame_layer.dataProvider().addFeature(frame_feat)
         
         frame_symbol=QgsSymbol.defaultSymbol(frame_layer.geometryType())
-        frame_symbol.setColor(QColor(0,0,0,0))
+        frame_fill = QColor(frame_color)
+        frame_fill.setAlpha(0)
+        frame_symbol.setColor(frame_fill)
         frame_symbol.symbolLayer(0).setStrokeWidth(1)
-        frame_symbol.symbolLayer(0).setStrokeColor(QColor('orange'))
+        frame_symbol.symbolLayer(0).setStrokeColor(frame_color)
         frame_renderer = QgsSingleSymbolRenderer(frame_symbol)
         frame_layer.setRenderer(frame_renderer)
         frame_layer.triggerRepaint()
@@ -502,8 +499,17 @@ class QClassiPyDrawMask(QWidget):
         QgsProject.instance().addMapLayer(frame_layer)
         self.frame_layer = frame_layer
         
-        qgis.utils.iface.mapCanvas().setExtent(self.frame_layer.extent())
-        qgis.utils.iface.mapCanvas().refresh()
+        canvas = qgis.utils.iface.mapCanvas()
+        map_crs = canvas.mapSettings().destinationCrs()
+        layer_crs = layer.crs()
+        frame_extent = self.frame_layer.extent()
+        
+        if map_crs != layer_crs :
+            transform = QgsCoordinateTransform(layer_crs, map_crs, QgsProject.instance())
+            frame_extent = transform.transformBoundingBox(frame_extent)
+        
+        canvas.setExtent(frame_extent)
+        canvas.refresh()
         qgis.utils.iface.setActiveLayer(self.layer)
         
     def viewSHP(self):
@@ -521,11 +527,16 @@ class QClassiPyDrawMask(QWidget):
         
         opacity = self.ui.opacity_slider.value()/100
         
-        for value in values:
+        poly_mask_visible = self.ui.layer_poly.isChecked() and self.poly_mask is not None and self.poly_mask.featureCount() > 0
+        
+        if poly_mask_visible:
+            render_categories_mask = np.array([])
+        
+        for value in values: 
 
             symbol = QgsSymbol.defaultSymbol(self.layer.geometryType())
             
-            color = self.categories.loc[(band_name, value), "color"]
+            color = QColor(self.categories.loc[(band_name, value), "color"])
             
             symbol_opacity = 0 if value==null_value else opacity
             symbol.setColor(color)
@@ -533,35 +544,50 @@ class QClassiPyDrawMask(QWidget):
             symbol.setOpacity(symbol_opacity)
             
             cat_item = QgsRendererCategory(self.type_qgis(value), symbol, str(value))        
-            render_categories = np.append(render_categories,cat_item)
+            render_categories = np.append(render_categories, cat_item)
             
-        self.ui.layer_poly.setEnabled(len(render_categories)<=2 and valid_null_value)
+            if poly_mask_visible and value != null_value:
+            
+                mask_symbol = QgsSymbol.defaultSymbol(self.poly_mask.geometryType())
+                
+                color.setAlpha(int(opacity*255))
+                
+                mask_symbol.setColor(color)
+                
+                color.setAlpha(255)
+                mask_symbol.symbolLayer(0).setStrokeWidth(0.25)
+                mask_symbol.symbolLayer(0).setStrokeColor(color)
+                
+                cat_item_mask = QgsRendererCategory(self.type_qgis(value), mask_symbol, str(value))   
+                render_categories_mask = np.append(render_categories_mask, cat_item_mask)
             
         renderer = QgsCategorizedSymbolRenderer(band_name, list(render_categories))
         self.layer.setRenderer(renderer)
         self.layer.triggerRepaint()
-        
-        if(self.ui.layer_poly.isChecked() and self.poly_mask is not None and self.poly_mask.featureCount()>0):
-        
-            color = self.categories.loc[(band_name, values[values!=null_value][0]), "color"]
+                
+        if poly_mask_visible:
+            
             mask_symbol = QgsSymbol.defaultSymbol(self.poly_mask.geometryType())
             
+            color = QColor(default_color)
             color.setAlpha(int(opacity*255))
-            
             mask_symbol.setColor(color)
-            
             color.setAlpha(255)
             mask_symbol.symbolLayer(0).setStrokeWidth(0.25)
             mask_symbol.symbolLayer(0).setStrokeColor(color)
-            mask_renderer = QgsSingleSymbolRenderer(mask_symbol)
+            
+            cat_item_mask = QgsRendererCategory('', mask_symbol, '')   
+            render_categories_mask = np.append(render_categories_mask, cat_item_mask)            
+                
+            mask_renderer = QgsCategorizedSymbolRenderer(band_name, list(render_categories_mask))
             self.poly_mask.setRenderer(mask_renderer)
-            self.poly_mask.triggerRepaint()
-
+            self.poly_mask.triggerRepaint()    
+            
     def drawSelection(self, *, draw_value=None):
     
         band_name = self.poly_img.band_names[self.ui.band_combo.currentIndex()]
         
-        if(draw_value is None):
+        if draw_value is None :
             draw_value = self.draw_value
     
         selected_features = self.layer.selectedFeatures()
@@ -586,7 +612,7 @@ class QClassiPyDrawMask(QWidget):
         self.viewSHP()
         
     def layerSelection(self, toggled):
-        if(toggled):
+        if toggled :
             qgis.utils.iface.actionSelectPolygon().trigger() 
             self.layer.selectionChanged.connect(self.drawSelection)
             self.ui.draw_value_edit.setEnabled(True)
@@ -594,23 +620,30 @@ class QClassiPyDrawMask(QWidget):
         else:
             self.layer.selectionChanged.disconnect(self.drawSelection)
             
-    def layerPoly(self):
+    def layerPoly(self, commit = True):
     
         band_name = self.poly_img.band_names[self.ui.band_combo.currentIndex()]
         
-        if(self.poly_mask is not None):
-            self.poly_mask.commitChanges()
-            self.poly_mask.committedGeometriesChanges.disconnect(self.drawPoly)
+        if self.poly_mask is not None :
+            if commit:
+                self.poly_mask.commitChanges()
+            else:
+                self.poly_mask.rollBack()
+                
+            self.poly_mask.committedGeometriesChanges.disconnect()
+            self.poly_mask.committedFeaturesAdded.disconnect()
+            self.poly_mask.committedFeaturesRemoved.disconnect()
+            self.poly_mask.committedAttributeValuesChanges.disconnect()
             
             provider = self.poly_mask.dataProvider()
-            path_to_shp = os.path.realpath(provider.dataSourceUri())
+            path_to_gpkg = os.path.realpath(provider.dataSourceUri())
             provider.truncate()
             QgsProject.instance().removeMapLayer(self.poly_mask.id())
-            QgsVectorFileWriter.deleteShapeFile(path_to_shp)
+            os.remove(path_to_gpkg.split('|')[0])
             
             self.poly_mask = None    
         
-        if(self.ui.layer_poly.isChecked()):
+        if self.ui.layer_poly.isChecked() :
         
             self.ui.draw_value_edit.setEnabled(False)
             self.ui.brush_width.setEnabled(False)
@@ -621,12 +654,9 @@ class QClassiPyDrawMask(QWidget):
 
             img_poly_name = os.path.join(layer_dir, 'polymask.gpkg')
             
-            saved = self.poly_img.to_gpkg(img_poly_name, dissolve_by=band_name, null_values={band_name: null_value}, simplify_tolerance = resolution, layer_name = 'polymask')
-                        
-            if(saved):
-                poly_mask = QgsVectorLayer(img_poly_name + "|layername=polymask", "polymask", "ogr")
-            else:
-                poly_mask = QgsVectorLayer("Polygon", "polymask", "memory")
+            feature_count = self.poly_img.to_gpkg(img_poly_name, dissolve_by=band_name, null_values={band_name: null_value}, simplify_tolerance = resolution, layer_name = 'polymask')
+            
+            poly_mask = QgsVectorLayer(img_poly_name + "|layername=polymask", "polymask", "ogr")
                 
             QgsProject.instance().addMapLayer(poly_mask)        
             self.poly_mask = poly_mask
@@ -634,37 +664,99 @@ class QClassiPyDrawMask(QWidget):
             
             self.viewSHP()
             
-            self.poly_mask.committedGeometriesChanges.connect(self.drawPoly)
+            self.poly_mask.committedGeometriesChanges.connect(lambda layer_id, features: self.drawPoly(features, 'geometry'))
+            self.poly_mask.committedFeaturesAdded.connect(lambda layer_id, features: self.drawPoly(features, 'added'))
+            self.poly_mask.committedFeaturesRemoved.connect(lambda layer_id, features: self.drawPoly(features, 'removed'))
+            self.poly_mask.committedAttributeValuesChanges.connect(lambda layer_id, features: self.drawPoly(features, 'attribute'))
         else:
             qgis.utils.iface.setActiveLayer(self.layer)
             
-    def drawPoly(self, committed):
+    def drawPoly(self, changed_features, change_type):
     
-        if(not(committed)):
-            print('Error: changes not committed!')
-            return
-            
         band_name = self.poly_img.band_names[self.ui.band_combo.currentIndex()]
-
-        field_idx = self.layer.fields().indexOf(band_name)
         
         null_value = self.null_value
+
+        request = QgsFeatureRequest().setFilterExpression(f'"{band_name}" = {null_value}')
+        null_feat_ids = np.array([feat.id() for feat in self.poly_mask.getFeatures(request)], dtype=int)
+        request = QgsFeatureRequest().setFilterExpression(f'"{band_name}" IS NULL')
+        null_feat_ids = np.append(null_feat_ids, np.array([feat.id() for feat in self.poly_mask.getFeatures(request)], dtype=int))
+        
+        null_feat_ids = null_feat_ids[null_feat_ids >= 0]
+        
+        if change_type == 'geometry' or change_type == 'attribute':
+            feat_ids = list(changed_features.keys())
+        elif change_type == 'added':
+            feat_ids = [feat.id() for feat in changed_features]
+        else:
+            feat_ids = []
+            
+        feat_ids = np.array(feat_ids, dtype=int)
+        feat_ids = feat_ids[~np.isin(feat_ids, null_feat_ids)]
+            
+        self.poly_mask.committedGeometriesChanges.disconnect()
+        self.poly_mask.committedFeaturesAdded.disconnect()
+        self.poly_mask.committedFeaturesRemoved.disconnect()
+        self.poly_mask.committedAttributeValuesChanges.disconnect()
+        
+        if Qgis.QGIS_VERSION_INT < 33800:
+            priority_field = QgsField('priority_rasterize', QVariant.Int)
+        else:
+            priority_field = QgsField('priority_rasterize', QMetaType.Int)
+
+        self.poly_mask.dataProvider().addAttributes([priority_field])
+        self.poly_mask.updateFields()
+
+        if len(null_feat_ids) > 0 :
+            self.poly_mask.dataProvider().deleteFeatures(list(null_feat_ids))
+
+        priority_idx = self.poly_mask.fields().indexOf('priority_rasterize')
+        priority_dict = {feat_id: {priority_idx: 1} for feat_id in feat_ids}
+        for feat in self.poly_mask.getFeatures():
+            feat_id = feat.id()
+            if feat_id not in feat_ids and feat_id not in null_feat_ids and feat_id >= 0:
+                priority_dict[feat_id] = {priority_idx: 0}
+        
+        self.poly_mask.dataProvider().changeAttributeValues(priority_dict)
         
         band_array = rasterizeLayer(os.path.join(layer_dir, 'polymask.gpkg'),
                                     band_name,
                                     (self.poly_img.height, self.poly_img.width),
                                     self.poly_img.transform,
+                                    self.poly_img.crs,
                                     tmp_output_path = os.path.join(layer_dir, 'polymask_raster.tif'),
                                     layer_name = 'polymask',
                                     nodata = null_value,
+                                    priority = ('priority_rasterize', [1]),
                                     dtype = self.type_img)
         
+        self.poly_mask.dataProvider().deleteAttributes([priority_idx])
+        self.poly_mask.updateFields()
+
+        self.poly_mask.committedGeometriesChanges.connect(lambda layer_id, features: self.drawPoly(features, 'geometry'))
+        self.poly_mask.committedFeaturesAdded.connect(lambda layer_id, features: self.drawPoly(features, 'added'))
+        self.poly_mask.committedFeaturesRemoved.connect(lambda layer_id, features: self.drawPoly(features, 'removed'))
+        self.poly_mask.committedAttributeValuesChanges.connect(lambda layer_id, features: self.drawPoly(features, 'attribute'))
+                                    
         change_indices = np.nonzero(self.poly_img.bands[band_name]-band_array)
         change_values = band_array[change_indices]
-        change_indices = change_indices[0]*self.poly_img.width + change_indices[1]
+        change_indices = change_indices[0]*self.poly_img.width + change_indices[1] + 1
+        
+        def_num = self.ui.draw_value_def.count()
+        
+        new_values = np.unique(change_values)
+        new_values = new_values[~np.isin(new_values, self.categories.loc[(band_name,),:].index.values)]
+        
+        for new_value in new_values:
+            qcolorlist_update = qcolorlist[~np.isin(qcolorlist, self.categories.loc[(band_name,),:].loc[np.logical_not(self.categories.loc[(band_name,),'null']).values, 'color'])]
+            self.categories.loc[(band_name, new_value), ['def', 'color', 'null']] = ['', QColor(qcolorlist_update[0]), False]            
+            self.categories.loc[(band_name, new_value), 'index'] = def_num
+            self.ui.draw_value_def.addItem(str(new_value)+'|')
+            def_num += 1
         
         self.poly_img.bands[band_name] = band_array
         
+        field_idx = self.layer.fields().indexOf(band_name)
         change_dict = {change_indices[i]: {field_idx: self.type_qgis(change_values[i])} for i in range(0,len(change_indices))}
 
         with edit(self.layer):
@@ -679,16 +771,14 @@ class QClassiPyDrawMask(QWidget):
         brush_toggled = self.ui.layer_brush.isChecked()
         erase_toggled = self.ui.layer_erase.isChecked()
         
-        if(brush_toggled or erase_toggled):
+        if brush_toggled or erase_toggled :
             brush_width = self.ui.brush_width.value()
             
             resolution = (np.sqrt(self.poly_img.transform[1]**2+self.poly_img.transform[4]**2) + np.sqrt(self.poly_img.transform[2]**2+self.poly_img.transform[5]**2))/2
 
-            brush_width = (brush_width-0.5)*resolution
-            
             self.ui.brush_width.setEnabled(True)
             
-            if(brush_toggled):
+            if brush_toggled :
                 draw_value = self.draw_value
                 self.ui.draw_value_edit.setEnabled(True)
             else:
@@ -696,7 +786,7 @@ class QClassiPyDrawMask(QWidget):
                 self.ui.draw_value_edit.setEnabled(False)
             
             canvas = qgis.utils.iface.mapCanvas()
-            tool = BufferSelectionTool(canvas, buffer_size=brush_width)  # Adjust buffer size as needed
+            tool = BufferSelectionTool(canvas, self.layer, resolution, buffer_size=brush_width)  # Adjust buffer size as needed
             tool.leftButtonReleased.connect(lambda: self.drawSelection(draw_value=draw_value))
             canvas.setMapTool(tool)       
             
@@ -708,7 +798,7 @@ class QClassiPyDrawMask(QWidget):
 
         def_num = self.ui.draw_value_def.count()
     
-        if(change=='null'):
+        if change == 'null' :
             try:
                 new_null_value = self.type_img(self.ui.null_value_edit.text())
             except:
@@ -716,25 +806,24 @@ class QClassiPyDrawMask(QWidget):
                 self.ui.draw_value_def.currentIndexChanged.connect(self.changeOfValueCombo)
                 return
                 
-                
             self.categories.loc[(band_name, self.null_value), ['def', 'color', 'null']] = ['', QColor(), False]            
             self.ui.draw_value_def.setItemText(int(self.categories.loc[(band_name, self.null_value), 'index']), str(self.null_value)+'|')
             
-            if(~np.isin(new_null_value, self.categories.loc[(band_name,),:].index.values)):
-                self.categories.loc[(band_name, new_null_value), ['def', 'color', 'null']] = ['NULL', QColor('white'), True]
+            if ~np.isin(new_null_value, self.categories.loc[(band_name,),:].index.values) :
+                self.categories.loc[(band_name, new_null_value), ['def', 'color', 'null']] = ['NULL', QColor(null_color), True]
                 self.categories.loc[(band_name, new_null_value), 'index'] = def_num
                 self.ui.draw_value_def.addItem(str(new_null_value)+'|NULL')
             else:
-                self.categories.loc[(band_name, new_null_value), ['def', 'color', 'null']] = ['NULL', QColor('white'), True]
+                self.categories.loc[(band_name, new_null_value), ['def', 'color', 'null']] = ['NULL', QColor(null_color), True]
                 self.ui.draw_value_def.setItemText(int(self.categories.loc[(band_name, new_null_value), 'index']), str(new_null_value)+'|NULL')
 
           
             
             qcolorlist_update = qcolorlist[~np.isin(qcolorlist, self.categories.loc[(band_name,),:].loc[np.logical_not(self.categories.loc[(band_name,),'null']).values, 'color'])]
-            self.categories.loc[(band_name, self.null_value), 'color'] = qcolorlist_update[0]
+            self.categories.loc[(band_name, self.null_value), 'color'] = QColor(qcolorlist_update[0])
             self.null_value = new_null_value
             
-        elif(change=='draw'):
+        elif change == 'draw' :
             try:
                 new_draw_value = self.type_img(self.ui.draw_value_edit.text())
             except:
@@ -744,16 +833,16 @@ class QClassiPyDrawMask(QWidget):
                 
             self.draw_value = new_draw_value
 
-            if(~np.isin(new_draw_value, self.categories.loc[(band_name,),:].index.values)):
+            if ~np.isin(new_draw_value, self.categories.loc[(band_name,),:].index.values) :
                 qcolorlist_update = qcolorlist[~np.isin(qcolorlist, self.categories.loc[(band_name,),:].loc[np.logical_not(self.categories.loc[(band_name,),'null']).values, 'color'])]
-                self.categories.loc[(band_name, new_draw_value), ['def', 'color', 'null']] = ['', qcolorlist_update[0], False]            
+                self.categories.loc[(band_name, new_draw_value), ['def', 'color', 'null']] = ['', QColor(qcolorlist_update[0]), False]            
                 self.categories.loc[(band_name, new_draw_value), 'index'] = def_num
                 self.ui.draw_value_def.addItem(str(new_draw_value)+'|')
                 self.ui.draw_value_def.setCurrentIndex(def_num) 
             else:
                 self.ui.draw_value_def.setCurrentIndex(int(self.categories.loc[(band_name, new_draw_value), 'index']))
                 
-        elif(change=='band'):
+        elif change == 'band' :
         
             self.ui.draw_value_def.clear()
             
@@ -771,7 +860,7 @@ class QClassiPyDrawMask(QWidget):
             self.ui.null_value_edit.setText(str(self.type_img(new_null_value)))
             self.null_value = new_null_value
             
-        if(self.draw_value==self.null_value):
+        if self.draw_value==self.null_value :
             self.setColorStyle()
         else:
             draw_color = self.categories.loc[(band_name, self.draw_value),'color']
@@ -779,18 +868,11 @@ class QClassiPyDrawMask(QWidget):
             
         band_uniq_values = np.unique(self.poly_img.bands[band_name])
         valid_null_value = self.null_value in band_uniq_values
-        
-        if(valid_null_value and len(band_uniq_values)<=2):
-            self.ui.layer_poly.setEnabled(True) 
 
-        if((self.ui.layer_brush.isChecked() or self.ui.layer_erase.isChecked()) and change!='band'):
+        if (self.ui.layer_brush.isChecked() or self.ui.layer_erase.isChecked()) and change != 'band' :
             self.layerBrush()
-        elif(self.ui.layer_poly.isChecked()):
-            if(not(valid_null_value) or len(band_uniq_values)>2):
-                self.ui.layer_select.setChecked(True)
-                self.ui.layer_poly.setEnabled(False)
-            else:
-                self.layerPoly()
+        elif self.ui.layer_poly.isChecked() :
+            self.layerPoly(commit = False)
         else:
             pass
             
@@ -818,7 +900,7 @@ class QClassiPyDrawMask(QWidget):
         band_indices = self.categories.loc[(band_name,), 'index']
         draw_value = self.draw_value
         
-        if(self.categories.loc[(band_name, draw_value),'null']):
+        if self.categories.loc[(band_name, draw_value),'null'] :
             self.ui.draw_value_def.setItemText(current_index, str(draw_value)+'|NULL')
             self.ui.draw_value_def.lineEdit().setText(str(draw_value)+'|NULL')
             return
@@ -843,12 +925,12 @@ class QClassiPyDrawMask(QWidget):
         
         band_indices = self.categories.loc[(band_name,), 'index']
         
-        if(self.draw_value==self.null_value):
+        if self.draw_value == self.null_value :
             return
         
         new_color = QColorDialog.getColor()
         
-        if(not(new_color.isValid())):
+        if not new_color.isValid() :
             return
         
         self.categories.loc[(band_name, self.draw_value), 'color'] = new_color
@@ -859,7 +941,7 @@ class QClassiPyDrawMask(QWidget):
         
     def setColorStyle(self, new_color = None):
     
-        if(new_color is None):
+        if new_color is None :
             self.ui.draw_value_color.setStyleSheet("")
         else:
             self.ui.draw_value_color.setStyleSheet(f"background-color: {new_color.name()};")
@@ -881,7 +963,7 @@ class QClassiPyDrawMask(QWidget):
                                                         
         img_ds = gdal.Open(self.img_filename, gdal.GA_Update)
         
-        if(len(self.poly_img.band_names)!=img_ds.RasterCount):
+        if len(self.poly_img.band_names) != img_ds.RasterCount :
             raise RuntimeError(f"There should be {len(self.poly_img.band_names)} bands, not {img_ds.RasterCount}, in file {self.img_filename}")
         
         band_dict = dict()
@@ -909,7 +991,7 @@ class QClassiPyDrawMask(QWidget):
     
         self.ui.layer_select.setChecked(True)
     
-        if(not(self.img_saved)):
+        if not self.img_saved :
     
             reply = QMessageBox.warning(
                 self,
@@ -920,10 +1002,10 @@ class QClassiPyDrawMask(QWidget):
             
             nosave_proceed = reply== QMessageBox.Ok
         
-            if(not(nosave_proceed)):
+            if not nosave_proceed :
                 return False
         
-        if(self.file_df is not None):
+        if self.file_df is not None :
             previous_priority = self.file_df.loc[self.file_df.index.values[self.file_row],'priority']
             completeness_index = 1 if previous_priority==COMPLETED_PRIORITY else 0
             
@@ -934,7 +1016,7 @@ class QClassiPyDrawMask(QWidget):
                                                             completeness_index,
                                                             False)
                                                             
-            if(not(reply)):
+            if not reply :
                 return False
                 
             new_priority = COMPLETED_PRIORITY if completeness_text=="Complete" else COMPLETED_PRIORITY+1
@@ -949,32 +1031,35 @@ class QClassiPyDrawMask(QWidget):
             pass
             
         provider = self.layer.dataProvider()
-        path_to_shp = os.path.realpath(provider.dataSourceUri())
+        path_to_gpkg = os.path.realpath(provider.dataSourceUri())
         provider.truncate()
         QgsProject.instance().removeMapLayer(self.layer.id())
         QgsProject.instance().removeMapLayer(self.frame_layer.id())
-        
-        QgsVectorFileWriter.deleteShapeFile(path_to_shp)
+        os.remove(path_to_gpkg.split('|')[0])
 
         self.layer = None
         self.frame_layer = None
         
         try:
             self.poly_mask.committedGeometriesChanges.disconnect()
+            self.poly_mask.committedFeaturesAdded.disconnect()
+            self.poly_mask.committedFeaturesRemoved.disconnect()
+            self.poly_mask.committedAttributeValuesChanges.disconnect()
+            
             provider = self.poly_mask.dataProvider()
-            path_to_shp = os.path.realpath(provider.dataSourceUri())
+            path_to_gpkg = os.path.realpath(provider.dataSourceUri())
             provider.truncate()
             QgsProject.instance().removeMapLayer(self.poly_mask.id())
-            QgsVectorFileWriter.deleteShapeFile(path_to_shp)
+            os.remove(path_to_gpkg.split('|')[0])
 
             self.poly_mask = None
         except:
             pass
             
-        self.ui.layer_select.toggled.disconnect(self.layerSelection)
-        self.ui.layer_poly.toggled.disconnect(self.layerPoly)
-        self.ui.layer_brush.toggled.disconnect(self.layerBrush)
-        self.ui.layer_erase.toggled.disconnect(self.layerBrush)
+        self.ui.layer_select.toggled.disconnect()
+        self.ui.layer_poly.toggled.disconnect()
+        self.ui.layer_brush.toggled.disconnect()
+        self.ui.layer_erase.toggled.disconnect()
         
         self.ui.draw_value_edit.editingFinished.disconnect()
         self.ui.null_value_edit.editingFinished.disconnect()
@@ -998,17 +1083,17 @@ class QClassiPyDrawMask(QWidget):
         
     def closeEvent(self, event):
     
-        if(self.manual_table is not None):
+        if self.manual_table is not None :
         
             self.manual_table.close()
             self.manual_table = None
 
         dismantled = True
         
-        if(not(self.just_started)):
+        if not self.just_started :
             dismantled = self.dismantle()    
                 
-        if(dismantled):
+        if dismantled :
             
             with open(os.path.join(layer_dir, 'browsedir.txt'), 'w') as outfile:
                 outfile.write(self.browse_dir)

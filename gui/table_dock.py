@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QAbstractItemView, QTableWidgetItem
+from qgis.PyQt.QtWidgets import QWidget, QAbstractItemView, QTableWidgetItem
 
-from PyQt5.QtGui import QColor 
-from PyQt5.QtCore import Qt, pyqtSignal 
+from qgis.PyQt.QtGui import QFont, QColor
+from qgis.PyQt.QtCore import Qt, pyqtSignal 
 
 from qgis.core import *
 from qgis.gui import QgsDockWidget
@@ -18,29 +18,29 @@ import shapely
 from ..core.gdal_tools import AffineTransformer
 from ..ui.all_uis import Ui_TableDock
 
-plugin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),'..')
-layer_dir = os.path.join(plugin_dir,'layers')
-gui_dir = os.path.join(plugin_dir,'gui')
-icon_dir = os.path.join(plugin_dir, 'icons')
-ui_dir = os.path.join(plugin_dir, 'ui')
+from .constants import Directories, Colors, Priorities
+
+layer_dir = Directories.Layer
 
 class TableDock(QgsDockWidget):
 
     finished = pyqtSignal()
 
-    def __init__(self, df, first_column = None):
+    def __init__(self, df, first_column = None, font = QFont()):
     
-        if(not(issubclass(type(df), pd.core.frame.DataFrame))):
+        if not issubclass(type(df), pd.core.frame.DataFrame) :
             raise ValueError('A Pandas dataframe (or child class) is required.')
     
         super(TableDock, self).__init__()
         
         self.ui = Ui_TableDock()
         self.ui.setupUi(self)
+        for child_widget in self.findChildren(QWidget):
+            child_widget.setFont(font)
         
         columns = np.array(list(df.columns))
         
-        if(first_column is not None):
+        if first_column is not None :
             try:
                 right_col_index = np.flatnonzero(columns==first_column)[0]
                 col_indices = np.append(right_col_index, np.delete(np.arange(len(columns), dtype=int), right_col_index))
@@ -62,7 +62,7 @@ class TableDock(QgsDockWidget):
             for j in range(0,len(columns)):
                 item = QTableWidgetItem(str(df.iloc[i,j]))
                 
-                if(j==0):
+                if j == 0 :
                     item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
                 else:
                     item.setTextAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
@@ -77,7 +77,7 @@ class TableDock(QgsDockWidget):
                 
     def signalSelected(self, accepted):
     
-        if(accepted and len(self.ui.list_table.selectedIndexes())>0):
+        if accepted and len(self.ui.list_table.selectedIndexes())>0 :
             self.selectedRow = int(self.ui.list_table.selectedIndexes()[0].row())
         else:
             self.selectedRow = None
@@ -96,15 +96,15 @@ class TableDock(QgsDockWidget):
 
 class TableDockFrames(TableDock):
 
-    def __init__(self, df, avoid_value = 0):
+    def __init__(self, df, avoid_value = Priorities.Completed, font = QFont()):
     
         columns = list(df.columns)
-        if(not(np.all(np.isin(['filename','priority'], columns)))):
+        if not np.all(np.isin(['filename','priority'], columns)) :
             return KeyError("The dataframe must contain the columns 'filename','priority'.")
             
         positions_present = np.all(np.isin(['y','x','height','width'], columns))
             
-        super(TableDockFrames, self).__init__(df, first_column = 'filename')
+        super(TableDockFrames, self).__init__(df, first_column = 'filename', font = font)
         
         filenames = np.unique(df['filename'])
         
@@ -139,7 +139,7 @@ class TableDockFrames(TableDock):
             
             affine_transformer = AffineTransformer(file_transform)
             
-            if(i==0):
+            if i == 0 :
                 srs = osr.SpatialReference()
                 srs.ImportFromWkt(file_crs)
                 
@@ -148,7 +148,7 @@ class TableDockFrames(TableDock):
                 src_srs.ImportFromWkt(file_crs)                
                 
                                 
-            if(positions_present):
+            if positions_present :
                 
                 x_starts = df['x'].iloc[file_rows].values
                 x_ends = x_starts + df['width'].iloc[file_rows].values
@@ -176,7 +176,7 @@ class TableDockFrames(TableDock):
                                    
             frame_ogr = [ogr.CreateGeometryFromWkb(frame) for frame in frame_list]
             
-            if(i==0):
+            if i == 0 :
                 gsr_list = gsr_list + frame_ogr 
             else:
                 coord_transformation = osr.CoordinateTransformation(src_srs, srs)
@@ -195,10 +195,10 @@ class TableDockFrames(TableDock):
         field_conversion = dict()
         for col_name in columns:
         
-            if(np.issubdtype(df[col_name].values.dtype, np.integer)):
+            if np.issubdtype(df[col_name].values.dtype, np.integer) :
                 field_type = ogr.OFTInteger
                 field_conversion[col_name] = int
-            elif(np.issubdtype(df[col_name].values.dtype, np.floating)):
+            elif np.issubdtype(df[col_name].values.dtype, np.floating) :
                 field_type = ogr.OFTReal
                 field_conversion[col_name] = float
             else:
@@ -225,8 +225,14 @@ class TableDockFrames(TableDock):
         
         allframes_layer = QgsVectorLayer(frame_file+"|layername="+layer_name, "image_frames", "ogr")
         
-        nonavoid_color = (0,165,0)
-        avoid_color = (255,0,0)
+        nonavoid_color = QColor(Colors.Uncompleted)
+        avoid_color = QColor(Colors.Completed)
+        
+        nonavoid_fill = QColor(nonavoid_color)
+        nonavoid_fill.setAlpha(25)
+        
+        avoid_fill = QColor(avoid_color)
+        avoid_fill.setAlpha(25)
         
         frame_symbol=QgsSymbol.defaultSymbol(allframes_layer.geometryType())
         frame_renderer=QgsRuleBasedRenderer(frame_symbol)
@@ -234,17 +240,17 @@ class TableDockFrames(TableDock):
         rule=frame_renderer.rootRule().children()[0].clone()
         rule.setLabel('Complete')
         rule.setFilterExpression("priority="+str(avoid_value))
-        rule.symbol().setColor(QColor(*avoid_color, 25))
+        rule.symbol().setColor(avoid_fill)
         rule.symbol().symbolLayer(0).setStrokeWidth(0.5)
-        rule.symbol().symbolLayer(0).setStrokeColor(QColor(*avoid_color,255))
+        rule.symbol().symbolLayer(0).setStrokeColor(avoid_color)
         frame_renderer.rootRule().appendChild(rule)
         
         rule=frame_renderer.rootRule().children()[0].clone()
         rule.setLabel('Incomplete')
         rule.setFilterExpression("priority!="+str(avoid_value))
-        rule.symbol().setColor(QColor(*nonavoid_color, 25))
+        rule.symbol().setColor(nonavoid_fill)
         rule.symbol().symbolLayer(0).setStrokeWidth(0.5)
-        rule.symbol().symbolLayer(0).setStrokeColor(QColor(*nonavoid_color,255))
+        rule.symbol().symbolLayer(0).setStrokeColor(nonavoid_color)
         frame_renderer.rootRule().appendChild(rule)
         
         frame_renderer.rootRule().removeChildAt(0)
@@ -282,9 +288,9 @@ class TableDockFrames(TableDock):
         self.ui.list_table.clearSelection()
         
         selected_features=self.allframes_layer.selectedFeatures()
-        selected_ids=[feat.id() for feat in selected_features]
+        selected_ids=[feat.id() - 1 for feat in selected_features]
         
-        if(len(selected_ids)>1):
+        if len(selected_ids) > 1 :
             selected_row = selected_ids[0]
             self.selected_row_tmp = selected_row
             self.allframes_layer.selectionChanged.disconnect(self.layerGroupSelection)
@@ -292,7 +298,7 @@ class TableDockFrames(TableDock):
             self.allframes_layer.select(selected_row)
             self.ui.list_table.selectRow(selected_row)
             self.allframes_layer.selectionChanged.connect(self.layerGroupSelection)
-        elif(len(selected_ids)==1):
+        elif len(selected_ids) == 1 :
             selected_row = selected_ids[0]
             self.selected_row_tmp = selected_row
             self.ui.list_table.selectRow(selected_row)
