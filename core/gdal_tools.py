@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, ogr, osr
 from packaging.version import Version
 
 gdal_version = Version(gdal.__version__)
@@ -8,25 +8,25 @@ gdal_version = Version(gdal.__version__)
 gdal_uints = {1: gdal.GDT_Byte,
              2: gdal.GDT_UInt16,
              4: gdal.GDT_UInt32}             
-if(gdal_version>=Version('3.5')):
+if gdal_version >= Version('3.5') :
     gdal_uints[8] = gdal.GDT_UInt64
 
 gdal_ints = {2: gdal.GDT_Int16,
              4: gdal.GDT_Int32}
-if(gdal_version>=Version('3.5')):
+if gdal_version >= Version('3.5') :
     gdal_ints[8] = gdal.GDT_Int64
-if(gdal_version>=Version('3.7')):
+if gdal_version >= Version('3.7') :
     gdal_ints[1] = gdal.GDT_Int8
 
 gdal_floats = {4: gdal.GDT_Float32,
                8: gdal.GDT_Float64}
-if(gdal_version>=Version('3.11')):
+if gdal_version>=Version('3.11') :
     gdal_ints[2] = gdal.GDT_Float16    
 
 def generateTiff(outfile, band_dict, transform, shape, crs, metadata = None):
 
     out_ext = os.path.splitext(outfile)[1]
-    if(out_ext!='.tif' and out_ext!='.tiff'):
+    if out_ext != '.tif' and out_ext != '.tiff' :
         raise ValueError("The outfile should have a .tif or .tiff extension.")
         
     band_names = list(band_dict.keys())
@@ -34,15 +34,15 @@ def generateTiff(outfile, band_dict, transform, shape, crs, metadata = None):
        
     I=1
     while(I<len(band_names)):
-        if(band_dict[band_names[I]].dtype!=dtype):
+        if band_dict[band_names[I]].dtype != dtype :
             raise ValueError("All arrays in `band_dict` should have the same dtype.")  
         I+=1 
 
-    if(np.issubdtype(dtype, np.unsignedinteger)):
+    if np.issubdtype(dtype, np.unsignedinteger) :
         type_dict = gdal_uints
-    elif(np.issubdtype(dtype, np.signedinteger)):
+    elif np.issubdtype(dtype, np.signedinteger) :
         type_dict = gdal_ints
-    elif(np.issubdtype(dtype, np.floating)):
+    elif np.issubdtype(dtype, np.floating) :
         type_dict = gdal_floats
     else:
         raise RuntimeError(f"The dtype should be a recognized Int, UInt or Float, not {dtype}.")
@@ -71,7 +71,7 @@ def generateTiff(outfile, band_dict, transform, shape, crs, metadata = None):
         band.WriteArray(band_dict[band_name])
         band.SetDescription(band_name)
     
-    if(metadata is not None):
+    if metadata is not None :
         ds.SetMetadata(metadata)
     
     ds.FlushCache()
@@ -82,10 +82,12 @@ def rasterizeLayer(
     vector_path,           # QgsVectorLayer
     attribute,            # attribute name to burn
     out_shape,            # (height, width)
-    transform, 
+    transform,
+    crs, 
     layer_name = None,  # GDAL geotransform
     nodata = 0,
     tmp_output_path = "temporary_raster.tif",
+    priority = None,
     dtype = np.uint8
 ):
     height, width = out_shape
@@ -103,21 +105,47 @@ def rasterizeLayer(
     
     out_ds = drv.Create(tmp_output_path, width, height, 1, gdal.GDT_Float32)
     out_ds.SetGeoTransform(transform)
+    out_ds.SetProjection(crs)
     
     band = out_ds.GetRasterBand(1)
     band.Fill(float(nodata))
     band.SetNoDataValue(float(nodata))
+
+    if priority is not None:
+        priority_field = priority[0]
+        priority_values = priority[1]
+    else:
+        priority_field = ''
+        priority_values = []
     
     vds = ogr.Open(vector_path)
     vl = vds.GetLayer(layer_name)
-
+    
+    priority_values_sql = '('+', '.join([str(priority_value) for priority_value in priority_values])+')'
+    
+    vl.SetAttributeFilter(f"{priority_field} NOT IN "+priority_values_sql)
+              
     gdal.RasterizeLayer(out_ds, [1],
                    vl,
-                   options = ["ALL_TOUCHED=TRUE", f"ATTRIBUTE={attribute}"])
+                   options = ["ALL_TOUCHED=FALSE", 
+                              f"ATTRIBUTE={attribute}"])
+                              
+    for i in range(0,len(priority_values)):
     
+        priority_value = priority_values[len(priority_values) - 1 - i]
+
+        vl.SetAttributeFilter(f"{priority_field} = {priority_value}")
+
+        gdal.RasterizeLayer(out_ds, [1],
+                       vl,
+                       options = ["ALL_TOUCHED=FALSE", 
+                                  f"ATTRIBUTE={attribute}"])
+        
+    vl = None
+    vds = None
+        
     out_ds.FlushCache()
     out_ds = None
-    vds = None
     
     # Return GDAL dataset (easier to convert to NumPy)
     ds = gdal.Open(tmp_output_path)
@@ -153,14 +181,14 @@ class AffineTransformer:
             rows = np.array([rows])
             cols = np.array([cols])
             
-        if(len(rows)!=len(cols) or len(rows)==0):
+        if len(rows) != len(cols) or len(rows) == 0 :
             raise ValueError("Inputs of different length.")
             
         inputs = np.vstack([np.ones((1,length)), cols[np.newaxis,:], rows[np.newaxis,:]])
             
         x, y = np.matmul(self.fwd_matrix, inputs)
         
-        if(scalar):
+        if scalar :
             x = x[0]
             y = y[0]
         
@@ -177,15 +205,50 @@ class AffineTransformer:
             x = np.array([x])
             y = np.array([y])
             
-        if(len(x)!=len(y) or len(x)==0):
+        if len(x) != len(y) or len(x) == 0 :
             raise ValueError("Inputs of different length.")
             
         inputs = np.vstack([np.ones((1,length)), x[np.newaxis,:], y[np.newaxis,:]])
             
         cols, rows = np.matmul(self.inv_matrix, inputs)
         
-        if(scalar):
+        if scalar :
             cols = cols[0]
             rows = rows[0]
         
         return rows, cols
+        
+class CoordTransformXY:
+
+    def __init__(self, src_crs, dst_crs):
+    
+        src_srs = osr.SpatialReference()
+        src_srs.ImportFromWkt(src_crs)
+        dst_srs = osr.SpatialReference()
+        dst_srs.ImportFromWkt(dst_crs)
+        
+        self.src_srs = src_srs
+        self.src_geog = src_srs.IsGeographic()
+        self.dst_srs = dst_srs
+        self.dst_geog = dst_srs.IsGeographic()
+        
+        self.transformer = osr.CoordinateTransformation(src_srs, dst_srs)
+        
+    def transform(self, x, y):
+    
+        if self.src_geog :
+            input_x = y
+            input_y = x
+        else:
+            input_x = x
+            input_y = y
+            
+        output_x, output_y, _ = self.transformer.TransformPoint(input_x, input_y)
+        
+        if self.dst_geog :
+        
+            return output_y, output_x
+            
+        else:
+        
+            return output_x, output_y

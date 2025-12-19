@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QFileDialog
-from PyQt5.QtGui import QColor 
-from PyQt5.QtCore import QTimer
+from qgis.PyQt.QtWidgets import QWidget, QFileDialog
+from qgis.PyQt.QtGui import QColor, QFont
+from qgis.PyQt.QtCore import QTimer
 
 import os
 import time
@@ -15,25 +15,26 @@ from ..core.polyimage import PolyImage
 from ..core.gdal_tools import generateTiff
 from ..ui.all_uis import Ui_QClassiPyMergeMasks
 
-COMPLETED_PRIORITY = 0
-UNCOMPLETED_PRIORITY = 1
+from .constants import Directories, Priorities, Colors
 
-plugin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),'..')
-layer_dir = os.path.join(plugin_dir,'layers')
-gui_dir = os.path.join(plugin_dir,'gui')
-icon_dir = os.path.join(plugin_dir, 'icons')
-ui_dir = os.path.join(plugin_dir, 'ui')
+COMPLETED_PRIORITY = Priorities.Completed
+UNCOMPLETED_PRIORITY = Priorities.Uncompleted
 
-hex_colorlist = np.array([str(QColor(colorstr).name()) for colorstr in np.loadtxt(os.path.join(gui_dir, 'colorlist.txt'), dtype=str)])
+layer_dir = Directories.Layer
+
+default_color = QColor(Colors.Default)
+colorlist = Colors.Colorlist
 
 class QClassiPyMergeMasks(QWidget):
 
-    def __init__(self, parent = None):
+    def __init__(self, parent = None, font = QFont()):
     
         super(QClassiPyMergeMasks, self).__init__(parent = parent)
         
         self.ui = Ui_QClassiPyMergeMasks()
         self.ui.setupUi(self)
+        for child_widget in self.findChildren(QWidget):
+            child_widget.setFont(font)
         
         self.ui.list1_err.setHidden(True)
         self.ui.list2_err.setHidden(True)
@@ -69,13 +70,13 @@ class QClassiPyMergeMasks(QWidget):
     
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "CSV (*.csv)")
         browse_dir = os.path.split(fname)[0]
-        if(os.path.isdir(browse_dir)):
+        if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
 
-        if(num == 1):
+        if num == 1 :
             self.ui.list1_load.setText(fname)
             self.ui.list1_err.setHidden(True)
-        elif(num == 2):
+        elif num == 2 :
             self.ui.list2_load.setText(fname)
             self.ui.list2_err.setHidden(True)
             
@@ -84,12 +85,12 @@ class QClassiPyMergeMasks(QWidget):
             
     def saveBrowse(self, path_type):
     
-        if(path_type=='mask'):
+        if path_type == 'mask' :
             fname, _ = QFileDialog.getSaveFileName(self, "Save file", os.path.join(self.browse_dir, 'mask.tif'), "TIF (*.tif *.tiff)")
             self.ui.mask_save.setText(fname)
             self.ui.mask_saveerr.setHidden(True)  
             
-        elif(path_type=='list'):
+        elif path_type=='list' :
             fname, _ = QFileDialog.getSaveFileName(self, "Save file", os.path.join(self.browse_dir, 'list.csv'), "CSV (*.csv)")
             self.ui.list_save.setText(fname)
             self.ui.list_saveerr.setHidden(True)   
@@ -105,7 +106,7 @@ class QClassiPyMergeMasks(QWidget):
         except:
             return False, False, None
         
-        if(not(all(np.isin(['filename','priority','x', 'y', 'width', 'height'], list(file_df.columns))))):
+        if not all( np.isin(['filename','priority','x', 'y', 'width', 'height'], list(file_df.columns)) ) :
             return False, False, file_df
         
         filename = np.unique(file_df['filename'])
@@ -120,10 +121,10 @@ class QClassiPyMergeMasks(QWidget):
         
     def listChangeFile(self, num):
     
-        if(num == 1):
+        if num == 1 :
             self.ui.list1_err.setHidden(True)
             list_filename = self.ui.list1_load.text()
-        elif(num == 2):
+        elif num == 2 :
             self.ui.list2_err.setHidden(True)
             list_filename = self.ui.list2_load.text()
             
@@ -134,10 +135,10 @@ class QClassiPyMergeMasks(QWidget):
     
         valid, valid_except_filename, file_df = self.listCheck(list_filename)
         
-        if(not(valid_except_filename)):
-            if(num == 1):
+        if not valid_except_filename :
+            if num == 1 :
                 self.ui.list1_err.setHidden(False)
-            elif(num == 2):
+            elif num == 2 :
                 self.ui.list2_err.setHidden(False)
 
             return     
@@ -145,7 +146,7 @@ class QClassiPyMergeMasks(QWidget):
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "TIF (*.tif *.tiff)")
         
         browse_dir = os.path.split(fname)[0]
-        if(os.path.isdir(browse_dir)):
+        if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
             
         file_df['filename'] = fname
@@ -163,10 +164,11 @@ class QClassiPyMergeMasks(QWidget):
         valid2, _, list2_df = self.listCheck(self.ui.list2_load.text())
         
         try:
+            assert os.path.exists(list1_df['filename'].iloc[0])
             mask_ds = gdal.Open(list1_df['filename'].iloc[0])
             mask1 = mask_ds.ReadAsArray()
             shape1 = mask1.shape
-            if(mask_ds.RasterCount==1 and len(shape1)==2):
+            if mask_ds.RasterCount == 1 and len(shape1) == 2 :
                 mask1 = mask1[np.newaxis, :, :]
                 shape1 = mask1.shape
             
@@ -182,14 +184,12 @@ class QClassiPyMergeMasks(QWidget):
             valid1 = False  
 
         try:
+            assert os.path.exists(list2_df['filename'].iloc[0])
             mask_ds = gdal.Open(list2_df['filename'].iloc[0])
             mask2 = mask_ds.ReadAsArray()
             shape2 = mask2.shape
             
-            print(shape2)
-            print(mask2)
-            
-            if(mask_ds.RasterCount==1 and len(shape2)==2):
+            if mask_ds.RasterCount == 1 and len(shape2) == 2 :
                 mask2 = mask2[np.newaxis, :, :]
                 shape2 = mask2.shape
             
@@ -202,17 +202,17 @@ class QClassiPyMergeMasks(QWidget):
         except:
             valid2 = False
             
-        if(not(valid1)):
+        if not valid1 :
             self.ui.list1_err.setHidden(False)
             
-        if(not(valid2)):
+        if not valid2 :
             self.ui.list2_err.setHidden(False)
             
-        if(not(valid1) or not(valid2)):
+        if not valid1 or not valid2 :
             return False, None, None, None, None, None, None, None, None, None, None
             
         masks_compatible = shape1==shape2 and mask1.dtype == mask2.dtype
-        if(not(masks_compatible)):
+        if not masks_compatible :
             self.ui.shape_err.setHidden(False)
         
         list1_df = list1_df.sort_values(['x','y'], ignore_index=True)
@@ -220,7 +220,7 @@ class QClassiPyMergeMasks(QWidget):
             
         lists_compatible = list1_df.loc[:,['x','y','height','width']].equals(list2_df.loc[:,['x','y','height','width']])
             
-        if(not(lists_compatible)):
+        if not lists_compatible :
             self.ui.tile_err.setHidden(False)
             return False, None, None, None, None, None, None, None, None, None, None
         
@@ -228,29 +228,24 @@ class QClassiPyMergeMasks(QWidget):
             
     def mergeMasks(self):
     
-        import importlib
-        from ..core import positions
-        importlib.reload(positions)
-        from ..core.positions import positionOverlaps
-    
         compatible, mask1, band_names1, metadata1, list1_df, mask2, band_names2, metadata2, list2_df, transform, crs = self.listsMasksCompatible()
     
-        if(not(compatible)):
+        if not compatible :
             return
         
         mask_savepath = self.ui.mask_save.text()
         list_savepath = self.ui.list_save.text()
         
         save_error = False
-        if(not(os.path.isdir(os.path.split(mask_savepath)[0])) or os.path.splitext(mask_savepath)[1] not in ['.tif','.tiff']):
+        if not os.path.isdir(os.path.split(mask_savepath)[0]) or os.path.splitext(mask_savepath)[1] not in ['.tif','.tiff'] :
             self.ui.mask_saveerr.setHidden(False)
             save_error = True
             
-        if(not(os.path.isdir(os.path.split(list_savepath)[0])) or os.path.splitext(list_savepath)[1]!='.csv'):
+        if not os.path.isdir(os.path.split(list_savepath)[0]) or os.path.splitext(list_savepath)[1] != '.csv' :
             self.ui.list_saveerr.setHidden(False)
             save_error = True
             
-        if(save_error):
+        if save_error :
             return
         
         overlaps = positionOverlaps(list1_df['y'].values, list1_df['x'].values, list1_df['height'].values, list1_df['width'].values)
@@ -286,8 +281,16 @@ class QClassiPyMergeMasks(QWidget):
         final_list.loc[completed_1, 'tile_list'] = 1
         final_list.loc[completed_2not1, 'tile_list'] = 2
         
-        final_mask = mask2.copy()
+        final_mask = mask1.copy()
         
+        for index in completed_2not1:
+            x = int(list2_df.loc[index, 'x'])
+            y = int(list2_df.loc[index, 'y'])
+            height = int(list2_df.loc[index, 'height'])
+            width = int(list2_df.loc[index, 'width'])
+            
+            final_mask[:, y:y+height, x:x+width] = mask2[:, y:y+height, x:x+width]
+            
         for index in completed_1:
             x = int(list1_df.loc[index, 'x'])
             y = int(list1_df.loc[index, 'y'])
@@ -303,9 +306,9 @@ class QClassiPyMergeMasks(QWidget):
         for i in range(0,len(band_names1)):
             valid_band1 = band_names1[i]!=""
             valid_band2 = band_names2[i]!=""
-            if(valid_band1):
+            if valid_band1 :
                 band_names.append(band_names1[i])
-            elif(valid_band2):
+            elif valid_band2 :
                 band_names.append(band_names2[i])
             else:
                 band_names.append(str(i+1))
@@ -343,26 +346,26 @@ class QClassiPyMergeMasks(QWidget):
             null_value = None
             
             for j, value in enumerate(uniq_values_final):
-                if(value in values_dict1):
+                if value in values_dict1 :
                     is_null_value = values_dict1[value][2]
-                    category_name = values_dict1[value][0] if not(is_null_value) else ""
-                    if(is_null_value):
+                    category_name = values_dict1[value][0] if not is_null_value else ""
+                    if is_null_value :
                         null_value = value
-                elif(value in values_dict2):
+                elif value in values_dict2 :
                     is_null_value = values_dict2[value][2]
-                    category_name = values_dict2[value][0] if not(is_null_value) else ""
-                    if(is_null_value and null_value is None):
+                    category_name = values_dict2[value][0] if not is_null_value else ""
+                    if is_null_value and null_value is None :
                         null_value = value
                 else:
                     is_null_value = False
                     category_name = ""
                 
-                category_color = hex_colorlist[j]
+                category_color = str(colorlist[j].name())
                 final_values_dict[value] = [category_name, category_color, is_null_value]
                     
-            if(null_value is None):
+            if null_value is None :
                 null_value = 0 if 0 not in values_in_dicts else np.amax(uniq_values_final) + 1
-            final_values_dict[null_value] = ["NULL", '#ffffff', True]
+            final_values_dict[null_value] = ["NULL", str(default_color.name()), True]
                 
             final_band_values_dict[band_name] = final_values_dict        
                     

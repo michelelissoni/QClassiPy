@@ -2,21 +2,22 @@
 name=QClassiPy
 email=michele.lissoni@obspm.fr
 author=Michele Lissoni
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
 description=Custom QGIS plugin for manually drawing raster masks.
 about=Custom QGIS plugin for manually drawing raster masks.
-version=0.1.0 
+version=0.2.0 
 repository=http://github.com/michelelissoni/QClassiPy
 
 category=Raster
 changelog=
+    0.2.0 - Fixed dependencies, improved brush and polygon
     0.1.0 - Released the plugin
     
 tags=raster,thematic,categorical,mask,edit,editing,classification,interactive,draw,brush
 
 homepage=http://github.com/michelelissoni/QClassiPy
-icon=icons/qcl_icon.png
+icon=icons/qcl_icon.svg
 
 experimental=True
 deprecated=False
@@ -24,7 +25,6 @@ deprecated=False
 server=False
 hasProcessingProvider=False
 
-
-
+plugin_dependencies=numpy<2.0,pandas,shapely
 
 
