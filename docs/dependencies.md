@@ -10,7 +10,7 @@ The most common dependency issues are:
 * Pandas and/or Shapely missing
 * an incompatibility between GDAL and NumPy (message: `osgeo.gdal_array (needs numpy < 2)`)
 
-We recommend the following solutions, depending on your operating system, but they may have to be tailored to your Python and QGIS setup.
+We recommend the following solutions, depending on your operating system, but they may have to be tailored to your Python and QGIS setup. After implementing them, restart QGIS and the plugin should open without issue.
 
 ### Windows
 1. Search among your applications for the `OSGeo4W Shell` and open it.
