@@ -25,3 +25,6 @@ If your main Python installation is not in the QGIS Python path or you do not wi
 
 ### MacOS
 Not yet tested, but the Linux solution might apply in this case as well.
+
+## Other problems
+If you receive the `Missing packages` message, but the problematic packages are not those described above, check the Python Warning (in the QGIS Python console) that has been issued concurrently. You will find more information on the error.
