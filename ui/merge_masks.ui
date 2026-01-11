@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>QClassipyMergeMasks</class>
- <widget class="QWidget" name="QClassipyMergeMasks">
+ <class>QClassiPyMergeMasks</class>
+ <widget class="QWidget" name="QClassiPyMergeMasks">
   <property name="geometry">
    <rect>
     <x>0</x>

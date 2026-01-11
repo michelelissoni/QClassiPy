@@ -340,12 +340,34 @@ class QClassiPyDrawMask(QWidget):
             crs = img_ds.GetProjection()
             metadata = img_ds.GetMetadata()
             
+            qclassipy_metadata = 'qclassipy_values' in metadata
+            qclassipy_metadata_dict = eval(metadata['qclassipy_values']) if qclassipy_metadata else dict()
+            
             band_names = list()
             for i in range(0,img_ds.RasterCount):
-                band_name = img_ds.GetRasterBand(i+1).GetDescription()
+                band = img_ds.GetRasterBand(i+1)
+                band_name = band.GetDescription()
                 band_name = str(i+1) if band_name=="" else band_name
                 assert band_name not in band_names
                 band_names.append(band_name)
+                
+                color_table = band.GetColorTable()
+                
+                if not qclassipy_metadata and color_table is not None:
+                    table_count = color_table.GetCount()
+                    
+                    band_color_dict = dict()
+                    null_appeared = False
+                    
+                    for table_value in range(0,table_count):
+                        r,g,b,alpha = color_table.GetColorEntry(table_value)
+                        color_hex = str(QColor(r,g,b).name())
+                        band_color_dict[table_value] = ['NULL', '#ffffff', True] if alpha==0 and not null_appeared else ['', color_hex, False]
+                        null_appeared = alpha==0 or null_appeared
+                        
+                    qclassipy_metadata_dict[band_name] = band_color_dict
+            
+            metadata['qclassipy_values'] = str(qclassipy_metadata_dict)
             
             self.poly_img = PolyImage(array, transform, crs, metadata = metadata, band_names = band_names)
             
@@ -470,6 +492,7 @@ class QClassiPyDrawMask(QWidget):
             self.setColorStyle(draw_color)
             
         self.ui.draw_value_color.clicked.connect(self.changeOfColor)
+        self.ui.rm_draw_value.clicked.connect(self.rmCategory)
         
         self.ui.draw_value_edit.editingFinished.connect(lambda: self.changeOfValue(change='draw'))
         self.ui.null_value_edit.editingFinished.connect(lambda: self.changeOfValue(change='null'))
@@ -588,7 +611,70 @@ class QClassiPyDrawMask(QWidget):
                 
             mask_renderer = QgsCategorizedSymbolRenderer(band_name, list(render_categories_mask))
             self.poly_mask.setRenderer(mask_renderer)
-            self.poly_mask.triggerRepaint()    
+            self.poly_mask.triggerRepaint()
+            
+    def rmCategory(self):
+    
+        band_name = self.poly_img.band_names[self.ui.band_combo.currentIndex()]
+    
+        band_values = self.categories.loc[(band_name,),:].index.values
+        
+        if self.ui.rm_current.isChecked():
+        
+            rm_values = np.array([self.draw_value], dtype = self.type_img)
+            
+        elif self.ui.rm_others.isChecked():
+        
+            rm_values = band_values[band_values != self.draw_value]
+            
+        elif self.ui.rm_absent.isChecked():
+        
+            present_values = np.unique(self.poly_img.bands[band_name])
+            rm_values = band_values[~np.isin(band_values, present_values)]
+            
+        elif self.ui.rm_larger.isChecked():
+        
+            rm_values = band_values[band_values > self.draw_value]
+            
+        rm_values = rm_values[rm_values != self.null_value]
+    
+        if len(rm_values) == 0:
+            return
+        
+        self.ui.draw_value_edit.setText(str(self.null_value))
+        self.changeOfValue(change = 'draw')
+        
+        self.ui.draw_value_def.currentIndexChanged.disconnect()
+        self.ui.draw_value_def.lineEdit().editingFinished.disconnect()
+
+        self.categories.drop(zip(np.repeat(band_name, len(rm_values)), rm_values), axis=0, inplace=True)
+        band_values = self.categories.loc[(band_name,),:].index.values
+        self.categories.loc[(band_name,), 'index'] = np.arange(len(band_values), dtype=int)
+
+        self.ui.draw_value_def.clear()
+        self.ui.draw_value_def.addItems([str(value)+'|'+str(self.categories.loc[(band_name,value), 'def']) for value in band_values])
+        
+        band_array = self.poly_img.bands[band_name]
+        
+        change_indices = np.nonzero(np.isin(band_array, rm_values))
+        band_array[change_indices] = self.null_value
+        change_indices = change_indices[0]*self.poly_img.width + change_indices[1] + 1
+        
+        self.poly_img.bands[band_name] = band_array
+        
+        field_idx = self.layer.fields().indexOf(band_name)
+        change_dict = {change_indices[i]: {field_idx: self.type_qgis(self.null_value)} for i in range(0,len(change_indices))}
+
+        with edit(self.layer):
+            self.layer.dataProvider().changeAttributeValues(change_dict)
+
+        self.ui.draw_value_def.currentIndexChanged.connect(self.changeOfValueCombo)
+        self.ui.draw_value_def.lineEdit().editingFinished.connect(self.changeOfDef)       
+        
+        self.ui.draw_value_edit.setText(str(self.null_value))
+        self.changeOfValue(change = 'draw')
+
+        self.viewSHP()
             
     def drawSelection(self, *, draw_value=None):
     
@@ -765,10 +851,10 @@ class QClassiPyDrawMask(QWidget):
         
         field_idx = self.layer.fields().indexOf(band_name)
         change_dict = {change_indices[i]: {field_idx: self.type_qgis(change_values[i])} for i in range(0,len(change_indices))}
-
+        
         with edit(self.layer):
             self.layer.dataProvider().changeAttributeValues(change_dict)
-            
+
         self.img_saved = False
             
         self.viewSHP()
@@ -980,6 +1066,22 @@ class QClassiPyDrawMask(QWidget):
             band_array = raster_band.ReadAsArray()
             band_array[self.img_Y:self.img_Y+self.img_height, self.img_X:self.img_X+self.img_width] = self.poly_img.bands[band_name]
             
+            color_table = gdal.ColorTable()
+            band_values = self.categories.loc[(band_name,),:].index.values
+            
+            for table_value in range(0,np.amax(band_values)+1):
+                if table_value in band_values:
+                    value_color = band_categories.loc[table_value, 'color']
+                    is_null = bool(band_categories.loc[table_value, 'null'])
+                    entry_alpha = 0 if is_null else 255
+                    entry_color = (value_color.red(), value_color.green(), value_color.blue(), entry_alpha)
+                else:
+                    entry_color = (255,255,255,0)
+                color_table.SetColorEntry(table_value, entry_color)
+
+            raster_band.SetColorTable(color_table)
+            raster_band.SetColorInterpretation(gdal.GCI_PaletteIndex)
+            
             raster_band.WriteArray(band_array)
             raster_band.SetDescription(band_name)
             
@@ -1079,6 +1181,7 @@ class QClassiPyDrawMask(QWidget):
         self.ui.draw_value_def.clear()
         
         self.ui.draw_value_color.clicked.disconnect()
+        self.ui.rm_draw_value.clicked.disconnect()
         
         self.ui.opacity_slider.valueChanged.disconnect()
         
