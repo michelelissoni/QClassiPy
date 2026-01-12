@@ -108,3 +108,7 @@ The `Merge masks` tab is meant to support collaborative mapping. It allows you t
 4. Retrieve the list file and the raster file from your colleague. Load your list file as List 1 and your colleague's file as List 2. You can use the `Update mask path` buttons to set the correct file path for your system.
 5. Choose the path of the final tile list and the final mask. Click `MERGE`.
 6. In the new raster, the areas that were marked as Complete in List 1 are now equal to the corresponding Map 1, and the same for List 2. In areas where both lists were marked as Complete, or Incomplete, the raster will have the same values as Map 1.
+
+## References
+
+Karra, K., Kontgis, C., Statman-Weil, Z., Mazzariello, J. C., Mathis, M., & Brumby, S. P. (2021, July). Global land use/land cover with Sentinel 2 and deep learning. In *2021 IEEE international geoscience and remote sensing symposium IGARSS* (pp. 4704-4707). IEEE.
