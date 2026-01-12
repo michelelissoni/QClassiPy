@@ -30,7 +30,9 @@ Let us start with a simple example of what can be achieved with QClassiPy. In th
 
 9. The LULC map is already quite good, but not perfect. For example, the Water (1) patches indicating the valley's river are discontinuous. Let us therefore trace the full path of the river across the tile. From the `Draw value` drop-down, select class "1|". You may want to edit it to remember that it stands for water <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/draw_value.png" height="40">. Feel free to change the color from the `Color` button.
 
-10. Check the `Brush` box. The spinbox next to it, indicating the brush width, will be enabled. Keep the brush width to 1. Now click and drag your mouse along the length of the river. When you release the mouse, the pixel you have run over will be changed to the Water class.
+   > To introduce a new class not listed in the drop-down, type its integer value in the field beside the drop-down: a new class will be created.
+
+11. Check the `Brush` box. The spinbox next to it, indicating the brush width, will be enabled. Keep the brush width to 1. Now click and drag your mouse along the length of the river. When you release the mouse, the pixel you have run over will be changed to the Water class.
 
 <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/river_before.png" height="150">   <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/river_after.png" height="150">
 
