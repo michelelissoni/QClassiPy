@@ -360,7 +360,7 @@
        <x>270</x>
        <y>30</y>
        <width>46</width>
-       <height>96</height>
+       <height>66</height>
       </rect>
      </property>
      <property name="font">
@@ -375,7 +375,7 @@
     <widget class="QLineEdit" name="draw_value_edit">
      <property name="geometry">
       <rect>
-       <x>127</x>
+       <x>185</x>
        <y>100</y>
        <width>41</width>
        <height>26</height>
@@ -413,7 +413,7 @@
       <rect>
        <x>10</x>
        <y>100</y>
-       <width>111</width>
+       <width>166</width>
        <height>26</height>
       </rect>
      </property>
@@ -432,7 +432,7 @@
     <widget class="QToolButton" name="draw_value_color">
      <property name="geometry">
       <rect>
-       <x>190</x>
+       <x>240</x>
        <y>100</y>
        <width>56</width>
        <height>26</height>

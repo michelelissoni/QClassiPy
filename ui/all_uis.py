@@ -461,13 +461,13 @@ class Ui_QClassiPyDrawMask(object):
         self.layer_select.setChecked(True)
         self.layer_select.setObjectName("layer_select")
         self.save_button = QtWidgets.QPushButton(parent=self.groupBox)
-        self.save_button.setGeometry(QtCore.QRect(270, 30, 46, 96))
+        self.save_button.setGeometry(QtCore.QRect(270, 30, 46, 66))
         font = QtGui.QFont()
         font.setPointSize(11)
         self.save_button.setFont(font)
         self.save_button.setObjectName("save_button")
         self.draw_value_edit = QtWidgets.QLineEdit(parent=self.groupBox)
-        self.draw_value_edit.setGeometry(QtCore.QRect(127, 100, 41, 26))
+        self.draw_value_edit.setGeometry(QtCore.QRect(185, 100, 41, 26))
         font = QtGui.QFont()
         font.setPointSize(11)
         self.draw_value_edit.setFont(font)
@@ -479,7 +479,7 @@ class Ui_QClassiPyDrawMask(object):
         self.label_8.setFont(font)
         self.label_8.setObjectName("label_8")
         self.draw_value_def = QtWidgets.QComboBox(parent=self.groupBox)
-        self.draw_value_def.setGeometry(QtCore.QRect(10, 100, 111, 26))
+        self.draw_value_def.setGeometry(QtCore.QRect(10, 100, 166, 26))
         font = QtGui.QFont()
         font.setPointSize(11)
         self.draw_value_def.setFont(font)
@@ -487,7 +487,7 @@ class Ui_QClassiPyDrawMask(object):
         self.draw_value_def.setInsertPolicy(QtWidgets.QComboBox.InsertPolicy.NoInsert)
         self.draw_value_def.setObjectName("draw_value_def")
         self.draw_value_color = QtWidgets.QToolButton(parent=self.groupBox)
-        self.draw_value_color.setGeometry(QtCore.QRect(190, 100, 56, 26))
+        self.draw_value_color.setGeometry(QtCore.QRect(240, 100, 56, 26))
         font = QtGui.QFont()
         font.setPointSize(11)
         self.draw_value_color.setFont(font)
@@ -676,7 +676,6 @@ class Ui_QClassiPyDrawMask(object):
         self.label_11.setText(_translate("QClassiPyDrawMask", "Height"))
         self.file_err.setText(_translate("QClassiPyDrawMask", "<html><head/><body><p><span style=\" color:#e01b24;\">Invalid file</span></p></body></html>"))
         self.coord_err.setText(_translate("QClassiPyDrawMask", "<html><head/><body><p><span style=\" color:#e01b24;\">Invalid coords</span></p></body></html>"))
-
 
 
 class Ui_QClassiPyMergeMasks(object):
