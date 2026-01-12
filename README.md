@@ -8,11 +8,12 @@ The plugin makes it possible to interactively change the pixel values of a class
 
 It is furthermore possible to split large rasters into tiles to edit separately.
 
-## Documentation
-
 [Installation](https://github.com/michelelissoni/QClassiPy/blob/main/docs/install.md)
 
 [Get started](https://github.com/michelelissoni/QClassiPy/blob/main/docs/get_started.md)
+
+<!---
+## Documentation
 
 ### Plugin features
 * [Draw mask](https://github.com/michelelissoni/QClassiPy/blob/main/docs/draw_mask.md): select a tile and draw the mask using the plugin's drawing tools
@@ -22,3 +23,4 @@ It is furthermore possible to split large rasters into tiles to edit separately.
 [Frequently Asked Questions](https://github.com/michelelissoni/QClassiPy/blob/main/docs/faq.md)
 
 [Future improvements](https://github.com/michelelissoni/QClassiPy/blob/main/docs/future.md)
+--->
