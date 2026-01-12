@@ -46,7 +46,7 @@ Let us start with a simple example of what can be achieved with QClassiPy. In th
 
 QClassiPy is not just a tool to modify a map but also to draw it yourself. 
 
-14. Reopen QClassiPy and the tile list (steps 4-6). You will see that the tile you edited earlier is now red rather than green ("Incomplete" tiles are in green, "Complete" tiles in red). Now select a nearby tile (for example, row 71 in the table).
+14. Reopen QClassiPy and the tile list (steps 4-6). You will see that the tile you edited earlier is now red rather than green. This is meant to help you remember which tiles you've already edited: "Incomplete" tiles are in green, "Complete" tiles in red. Now select a nearby tile (for example, row 71 in the table).
 
 15. This time, we want to draw the map ourselves. To erase what has already been drawn, the easiest way is to select as draw value "0|NULL". This value is the same one indicated in the `Null value` field just above: the drawing tools will therefore now behave as erasers. Choose the `Selection` tool and draw a polygon around the whole tile. The previous map will be erased.
 
@@ -58,7 +58,7 @@ QClassiPy is not just a tool to modify a map but also to draw it yourself.
 
 18. You can edit the polygon further, for instance with the Vertex Tool <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/vertex_tool.png" height="40">. Every time you Save Edits <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/save_edits.png" height="40">, the changes will be transferred to the map below.
 
-19. For finer adjustments, you can switch to the Brush tool and the Erase tool. In this case, the `polymask` layer will disappear, but it will re-appear if you switch the Polygon tool on again. The Erase tool works like the Brush tool, but sets the pixels to the NULL value.
+19. For finer adjustments, you can switch to the Brush tool and the Erase tool, which works like the Brush tool, but sets the pixels to the NULL value. In this case, the `polymask` layer will disappear, but it will re-appear if you switch the Polygon tool on again. The Polygon tool is best suited to situations when you have isolated patches that you are classifying surrounded by null pixels. In a LULC map where every pixel is classified, it can sometimes create small gaps in the map.
 
 20. Once you are finished, save. Before closing, let's clean up the symbology. You can switch between Draw values and edit their definitions to match the legend (step 3). You will see that there are 256 available values (the symbology has been inherited from the original LULC dataset), but the ones beyond 11 are empty. We can therefore remove them. Set the Draw Value to 11. Then, under the `Remove class` button, check `Larger`. Then click `Remove class`. All the classes beyond 11 will be removed (Warning: if you remove a class that is represented on the map, all the pixels with that value will be turned to NULL). If you later re-open the file, you will find that this symbology has been saved.
 
@@ -68,5 +68,31 @@ If we want to switch to another region of the same raster, we have to create a n
 
 21. Open QClassiPy and switch to the `Create Tiles` tab. Under `Choose raster`, find the `WestAlps_S2LULC.tif` and click `Select`. 
 
+<img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/create_tiles.png" height="300"> 
  
-   
+22. A `Tile bounds` layer will appear in the Layers panel, containing a red frame delimiting the raster bounds. This will result in the tiles covering the whole raster. If you want only a smaller region, you can modify the bounds. The `Bounds` allows you to select a region from pixel positions or geographic/projected coordinates. However, the easiest way is to select the `Tile bounds` layer. Toggle Editing <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/toggle_editing.png" height="40"> and use the Vertex Tool <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/vertex_tool.png" height="40"> to modify the polygon. Once it encompasses only the region you want, Save Edits <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/save_edits.png" height="40">.
+
+23. Uncheck `Mask path`. Choose the path of your tile list in `Tile list path`.
+
+24. Under `Tile size` you can change the size of the tiles, as well as their overlap. You can shrink the tiles as much as you want, but be careful about enlarging them: past a few hundred pixels, the size of the `polyimage` layer becomes too large for your system to handle. If you have found that at 224 x 224 QClassiPy was already very slow, you can shrink the tiles to speed it up.
+
+25. Click SAVE. The tiles will be saved. If you switch back to `Draw mask` and open the list, you will see that they are located only in the region you chose.
+
+<img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/bounds_before.png" height="150">   <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/bounds_after.png" height="150">
+
+27. QClassiPy supports masks with multiple bands. If you want to create a new, custom mask, check `Mask path` and choose its path. Then, in the `Mask bands` table, you can add the masks you want and edit their names. The mask will have the same pixel grid as the file you select in `Choose raster`.
+
+   > QClassiPy does not presently allow you to create a mask with a custom resolution. However, you can create a raster with a custom resolution from `Processing Toolbox` → `Raster creation` → `Create constant raster layer` (choose an integer data type, preferably Byte, if you want to draw directly on this mask). If you want a multi-band mask, you can just select the constant raster in QClassiPy `Create tiles` → `Choose raster`. Then follow step 27 to create a new, multi-band mask.
+
+## Merge masks
+
+The `Merge masks` tab is meant to support collaborative mapping. It allows you to split the mapping work between yourself and a colleague.
+
+<img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/merge_masks.png" height="300"> 
+
+1. Create a tile list and a mask raster using the `Create tiles` tab.
+2. Make a copy of the list and the raster and send them to a colleague. Choose which regions each of you will map.
+3. Map your assigned tiles and mark them as "Complete". Your colleague will do the same. At the end, you will have two lists with different Complete tiles and two rasters where different parts have been mapped.
+4. Retrieve the list file and the raster file from your colleague. Load your list file as List 1 and your colleague's file as List 2. You can use the `Update mask path` buttons to set the correct file path for your system.
+5. Choose the path of the final tile list and the final mask. Click `MERGE`.
+6. In the new raster, the areas that were marked as Complete in List 1 are now equal to the corresponding Map 1, and the same for List 2. In areas where both lists were marked as Complete, or Incomplete, the raster will have the same values as Map 1.
