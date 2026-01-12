@@ -1177,6 +1177,7 @@ class QClassiPyDrawMask(QWidget):
         self.ui.brush_width.valueChanged.disconnect()
         
         self.categories = None
+        self.ui.draw_value_def.lineEdit().editingFinished.disconnect()
         self.ui.draw_value_def.currentIndexChanged.disconnect()
         self.ui.draw_value_def.clear()
         
