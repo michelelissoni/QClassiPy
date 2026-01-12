@@ -76,11 +76,11 @@ If we want to switch to another region of the same raster, we have to create a n
 
    > The tile list file is a CSV with 6 columns: 'filename' (the map raster path), 'y', 'x' (the row and column of the tile's top-left corner), 'height', 'width' (the tile's height and width in pixels), 'priority' (set to 1 if the tile is Incomplete, to 0 if Complete). If you want a more sparse distribution of the tiles, you can create a custom CSV that serves your needs.
 
-24. Uncheck `Mask path`. Choose the path of your tile list in `Tile list path`.
+24. Uncheck `Mask path`. Choose the path of your tile list in `Tile list path`. Under `Tile size` you can change the size of the tiles, as well as their overlap.
 
-25. Under `Tile size` you can change the size of the tiles, as well as their overlap. You can shrink the tiles as much as you want, but be careful about enlarging them: past a few hundred pixels, the size of the `polyimage` layer becomes too large for your system to handle. If you have found that at 224 x 224 QClassiPy was already very slow, you can shrink the tiles to speed it up.
+   > You can shrink the tiles as much as you want, but be careful about enlarging them: past a few hundred pixels, the size of the `polyimage` layer becomes too large for your system to handle. If you have found that at 224 x 224 QClassiPy was already very slow, you can shrink the tiles to speed it up.
 
-26. Click SAVE. The tiles will be saved. If you switch back to `Draw mask` and open the list, you will see that they are located only in the region you chose.
+28. Click SAVE. The tiles will be saved. If you switch back to `Draw mask` and open the list, you will see that they are located only in the region you chose.
 
 <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/bounds_before.png" height="150">   <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/bounds_after.png" height="150">
 
