@@ -74,11 +74,14 @@ If we want to switch to another region of the same raster, we have to create a n
  
 22. A `Tile bounds` layer will appear in the Layers panel, containing a red frame delimiting the raster bounds. This will result in the tiles covering the whole raster. If you want only a smaller region, you can modify the bounds. The `Bounds` allows you to select a region from pixel positions or geographic/projected coordinates. However, the easiest way is to select the `Tile bounds` layer. Toggle Editing <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/toggle_editing.png" height="40"> and use the Vertex Tool <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/vertex_tool.png" height="40"> to modify the polygon. Once it encompasses only the region you want, Save Edits <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/save_edits.png" height="40">.
 
-   > The tile list file is a CSV with 6 columns: 'filename' (the map raster path), 'y', 'x' (the row and column of the tile's top-left corner), 'height', 'width' (the tile's height and width in pixels), 'priority' (set to 1 if the tile is Incomplete, to 0 if Complete). If you want a more sparse distribution of the tiles, you can create a custom CSV that serves your needs.
+   > The tile list file is a CSV with 6 columns: 'filename' (the map raster path), 'y', 'x' (the row and column of the tile's top-left corner),
+   > 'height', 'width' (the tile's height and width in pixels), 'priority' (set to 1 if the tile is Incomplete, to 0 if Complete). If you want a     > more sparse distribution of the tiles, you can create a custom CSV that serves your needs.
 
 24. Uncheck `Mask path`. Choose the path of your tile list in `Tile list path`. Under `Tile size` you can change the size of the tiles, as well as their overlap.
 
-   > You can shrink the tiles as much as you want, but be careful about enlarging them: past a few hundred pixels, the size of the `polyimage` layer becomes too large for your system to handle. If you have found that at 224 x 224 QClassiPy was already very slow, you can shrink the tiles to speed it up.
+   > You can shrink the tiles as much as you want, but be careful about enlarging them: past a few hundred pixels, the size of the `polyimage`
+   > layer becomes too large for your system to handle. If you have found that at 224 x 224 QClassiPy was already very slow, you can shrink the
+   > tiles to speed it up.
 
 28. Click SAVE. The tiles will be saved. If you switch back to `Draw mask` and open the list, you will see that they are located only in the region you chose.
 
@@ -86,7 +89,10 @@ If we want to switch to another region of the same raster, we have to create a n
 
 27. QClassiPy supports masks with multiple bands. If you want to create a new, custom mask, check `Mask path` and choose its path. Then, in the `Mask bands` table, you can add the masks you want and edit their names. The mask will have the same pixel grid as the file you select in `Choose raster`.
 
-   > QClassiPy does not presently allow you to create a mask with a custom resolution. However, you can create a raster with a custom resolution from `Processing Toolbox` → `Raster creation` → `Create constant raster layer` (choose an integer data type, preferably Byte, if you want to draw directly on this mask). If you want a multi-band mask, you can just select the constant raster in QClassiPy `Create tiles` → `Choose raster`. Then follow step 27 to create a new, multi-band mask.
+   > QClassiPy does not presently allow you to create a mask with a custom resolution. However, you can create a raster with a custom resolution
+   > from `Processing Toolbox` → `Raster creation` → `Create constant raster layer` (choose an integer data type, preferably Byte, if you want to
+   > draw directly on this mask). If you want a multi-band mask, you can just select the constant raster in QClassiPy `Create tiles` →
+   > `Choose raster`. Then follow step 27 to create a new, multi-band mask.
 
 ## Merge masks
 
