@@ -52,7 +52,8 @@ QClassiPy is not just a tool to modify a map but also to draw it yourself.
 
 16. Let us focus on drawing just the Tree class. This time, check the `Polygon` box. A new layer called `polymask` will appear in your Layers panel.
 
-   > The Polygon tool is most suitable when you have isolated patches that you are classifying surrounded by null pixels. In a map where every pixel is classified, like a LULC map, it can sometimes create small gaps.
+   > The Polygon tool is most suitable when you have isolated patches that you are classifying surrounded by null pixels. In a map where
+   > every pixel is classified, like a LULC map, it can sometimes create small gaps.
 
 18. Edit `polymask` like you would any polygon layer. Select it in the Layers panel and then Toggle Editing <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/toggle_editing.png" height="40">. Add a polygon <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/add_polygon.png" height="40">, drawing it over the tree patch. When you close it, it will ask for a value in field "1" (the band name). Set it to 2 (the Tree class). Now Save Edits <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/save_edits.png" height="40">. The polygon will turn the correct color and below, the area of the map covered by the polygon is also set to 2.
 
@@ -75,7 +76,8 @@ If we want to switch to another region of the same raster, we have to create a n
 22. A `Tile bounds` layer will appear in the Layers panel, containing a red frame delimiting the raster bounds. This will result in the tiles covering the whole raster. If you want only a smaller region, you can modify the bounds. The `Bounds` allows you to select a region from pixel positions or geographic/projected coordinates. However, the easiest way is to select the `Tile bounds` layer. Toggle Editing <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/toggle_editing.png" height="40"> and use the Vertex Tool <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/vertex_tool.png" height="40"> to modify the polygon. Once it encompasses only the region you want, Save Edits <img src="https://github.com/michelelissoni/QClassiPy/blob/main/docs/images/save_edits.png" height="40">.
 
    > The tile list file is a CSV with 6 columns: 'filename' (the map raster path), 'y', 'x' (the row and column of the tile's top-left corner),
-   > 'height', 'width' (the tile's height and width in pixels), 'priority' (set to 1 if the tile is Incomplete, to 0 if Complete). If you want a     > more sparse distribution of the tiles, you can create a custom CSV that serves your needs.
+   > 'height', 'width' (the tile's height and width in pixels), 'priority' (set to 1 if the tile is Incomplete, to 0 if Complete). If you want
+   >  a more sparse distribution of the tiles, you can create a custom CSV that serves your needs.
 
 24. Uncheck `Mask path`. Choose the path of your tile list in `Tile list path`. Under `Tile size` you can change the size of the tiles, as well as their overlap.
 
