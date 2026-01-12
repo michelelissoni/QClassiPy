@@ -7,7 +7,7 @@ Let us start with a simple example of what can be achieved with QClassiPy. In th
 1. Download the data: [WestAlps_example.zip](https://github.com/michelelissoni/QClassiPy/blob/main/docs/WestAlps_example.zip)
 2. Decompress the folder. Open the `west_alps.qgz` project in QGIS. It contains just a Google Satellite basemap.
    
-   > You can also use another satellite basemap you are familiar with, as long as it covers Western Italy.
+   > You can also use another satellite basemap you are familiar with, as long as it covers the Western Alps.
   
 3. Load the raster `WestAlps_S2LULC.tif`. It is a LULC raster with 9 classes. After inspecting the raster, hide or remove it.
 
