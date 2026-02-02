@@ -351,7 +351,7 @@ class QClassiPyDrawMask(QWidget):
                 assert band_name not in band_names
                 band_names.append(band_name)
                 
-                color_table = band.GetColorTable()
+                color_table = band.GetColorTable() if img_ds.RasterCount == 1 else None
                 
                 if not qclassipy_metadata and color_table is not None:
                     table_count = color_table.GetCount()
@@ -1060,6 +1060,9 @@ class QClassiPyDrawMask(QWidget):
             raise RuntimeError(f"There should be {len(self.poly_img.band_names)} bands, not {img_ds.RasterCount}, in file {self.img_filename}")
         
         band_dict = dict()
+        
+        print(self.categories)
+        
         for i, band_name in enumerate(self.poly_img.band_names):
             raster_band = img_ds.GetRasterBand(i+1)
         
@@ -1067,7 +1070,8 @@ class QClassiPyDrawMask(QWidget):
             band_array[self.img_Y:self.img_Y+self.img_height, self.img_X:self.img_X+self.img_width] = self.poly_img.bands[band_name]
             
             color_table = gdal.ColorTable()
-            band_values = self.categories.loc[(band_name,),:].index.values
+            band_categories = self.categories.loc[(band_name,),:]
+            band_values = band_categories.index.values
             
             for table_value in range(0,np.amax(band_values)+1):
                 if table_value in band_values:
@@ -1079,8 +1083,9 @@ class QClassiPyDrawMask(QWidget):
                     entry_color = (255,255,255,0)
                 color_table.SetColorEntry(table_value, entry_color)
 
-            raster_band.SetColorTable(color_table)
-            raster_band.SetColorInterpretation(gdal.GCI_PaletteIndex)
+            if len(self.poly_img.band_names) == 1:
+                raster_band.SetColorTable(color_table)
+                raster_band.SetColorInterpretation(gdal.GCI_PaletteIndex)
             
             raster_band.WriteArray(band_array)
             raster_band.SetDescription(band_name)
