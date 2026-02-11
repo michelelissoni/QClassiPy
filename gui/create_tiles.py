@@ -1,3 +1,15 @@
+"""
+Filename: create_tiles.py
+Author: Michele Lissoni
+Date: 2026-02-10
+"""
+
+"""
+
+The QClassiPyCreateTiles class handles the "Create tiles" tab.
+
+"""
+
 from qgis.PyQt.QtWidgets import QWidget, QAbstractItemView, QTableWidgetItem, QFileDialog
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtCore import Qt, QTimer
@@ -29,6 +41,8 @@ class QClassiPyCreateTiles(QWidget):
     
     def __init__(self, parent = None, font = QFont()):
     
+        """Initialization"""
+    
         super(QClassiPyCreateTiles, self).__init__(parent = parent)
         
         self.ui = Ui_QClassiPyCreateTiles()
@@ -37,8 +51,8 @@ class QClassiPyCreateTiles(QWidget):
         for child_widget in self.findChildren(QWidget):
             child_widget.setFont(font)
         
-        self.ui.crs_wkt.textChanged.connect(lambda: self.boundConvert(True)) 
-        self.ui.crs_predef.clicked.connect(self.predefCRS)
+        self.ui.crs_wkt.textChanged.connect(lambda: self.boundConvert(True)) # Other CRS WKT 
+        self.ui.crs_predef.clicked.connect(self.predefCRS) # Predefined button
         self.ui.crs_wkt.setEnabled(False)
         self.ui.crs_predef.setEnabled(False)
         self.ui.bounds_box.setEnabled(False)
@@ -47,46 +61,58 @@ class QClassiPyCreateTiles(QWidget):
             browse_dir = infile.read()
             self.browse_dir = browse_dir if os.path.isdir(browse_dir) else ""
         
-        self.ui.raster_browse.clicked.connect(self.rasterBrowse)
-        self.ui.raster_select.clicked.connect(self.rasterSelect)
+        self.ui.raster_browse.clicked.connect(self.rasterBrowse) # Choose raster, browse button
+        self.ui.raster_select.clicked.connect(self.rasterSelect) # Choose raster, select button
         
-        self.tile_mask_shape = None
-        self.tile_mask_crs = None
-        self.tile_mask_transform = None
-        self.tile_mask_transformer = None
+        self.tile_mask_shape = None # Mask shape
+        self.tile_mask_crs = None # Mask CRS
+        self.tile_mask_transform = None # Mask transform
+        self.tile_mask_transformer = None # Mask AffineTransformer
         
-        self.bounds_layer = None
-        self.bounds_crs = None
-        self.tile_bounds = None
+        self.bounds_layer = None # Tile bounds frame
+        self.bounds_crs = None # Tile bounds CRS
+        self.tile_bounds = None # Tile bounds
         self.invalid_bounds = True
         
-        self.ui.raster_err.setHidden(True)
+        # Hiding error messages
+        
+        self.ui.raster_err.setHidden(True) 
         self.ui.crs_err.setHidden(True)
         self.ui.mask_saveerr.setHidden(True)
         self.ui.list_saveerr.setHidden(True)
         self.ui.bounds_err.setHidden(True)
         self.ui.saved_message.setHidden(True)
         
-        self.ui.tile_width.editingFinished.connect(lambda: self.WHCheck('width'))
-        self.ui.tile_height.editingFinished.connect(lambda: self.WHCheck('height'))
+        # Tile size
         
-        self.ui.save_tiles.clicked.connect(self.saveTiles)
+        self.ui.tile_width.editingFinished.connect(lambda: self.WHCheck('width')) # Width
+        self.ui.tile_height.editingFinished.connect(lambda: self.WHCheck('height')) # Height
+        
+        self.ui.save_tiles.clicked.connect(self.saveTiles) # SAVE button
         self.ui.save_tiles.setEnabled(False) 
         self.saved_tmr = None    
+        
+        # Mask bands table
         
         self.ui.band_table.setRowHeight(0,20)
         self.ui.band_table.setColumnWidth(0,70)
         self.ui.band_table.setSelectionMode(QAbstractItemView.MultiSelection)
         self.ui.band_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         
+        # Add/remove band buttons 
+        
         self.ui.band_add.clicked.connect(self.addBand)
         self.ui.band_rm.clicked.connect(self.rmBand)
         self.ui.band_table.itemChanged.connect(self.editBand)        
+        
+        # Mask and tile list browse buttons
         
         self.ui.mask_savebrowse.clicked.connect(lambda: self.saveBrowse('mask'))
         self.ui.list_savebrowse.clicked.connect(lambda: self.saveBrowse('list'))        
         
     def rasterBrowse(self):
+    
+        """Choose raster browse button"""
     
         fname=QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "")
         self.browse_dir = os.path.split(fname[0])[0]
@@ -95,7 +121,11 @@ class QClassiPyCreateTiles(QWidget):
         
     def rasterSelect(self):
     
+        """Choose raster select button"""
+    
         self.ui.raster_err.setHidden(True)
+        
+        # Open raster
         
         try:
             assert os.path.exists(self.ui.raster_choose.text())
@@ -111,14 +141,15 @@ class QClassiPyCreateTiles(QWidget):
         crs = tile_ds.GetProjection()
         shape = (tile_ds.RasterYSize, tile_ds.RasterXSize)
         
-        
-            
+        # Remove previous bounds frame           
     
         if self.bounds_layer is not None :
 
             self.bounds_layer.committedGeometriesChanges.disconnect()
             QgsProject.instance().removeMapLayer(self.bounds_layer.id())
             self.bounds_layer = None
+            
+        # Set mask parameters
 
         self.tile_mask_crs = crs
         self.tile_mask_transform = transform
@@ -127,6 +158,8 @@ class QClassiPyCreateTiles(QWidget):
         tile_ds = None
 
         self.tile_mask_transformer = AffineTransformer(transform)        
+        
+        # Enable save button and Bounds group box
         
         self.ui.save_tiles.setEnabled(True)
         self.ui.bounds_box.setEnabled(True)
@@ -146,6 +179,8 @@ class QClassiPyCreateTiles(QWidget):
         except:
             pass
         
+        # Write bound coordinates
+        
         self.ui.topleft_y.setText("0")
         self.ui.topleft_x.setText("0")
         self.ui.bottomright_y.setText(str(self.tile_mask_shape[0]))
@@ -155,8 +190,12 @@ class QClassiPyCreateTiles(QWidget):
         self.ui.bottomright_x.setCursorPosition(0)
         self.ui.bottomright_y.setCursorPosition(0)
         
+        # Store tile bounds
+        
         self.tile_bounds = [0, 0, self.tile_mask_shape[0], self.tile_mask_shape[1]]
         self.invalid_bounds = False
+        
+        # Create bounds frame
         
         bounds_layer=QgsVectorLayer("Polygon", 'Tile bounds', "memory")
         bounds_layer.setCrs(QgsCoordinateReferenceSystem(self.tile_mask_crs))
@@ -183,17 +222,22 @@ class QClassiPyCreateTiles(QWidget):
         self.bounds_layer = bounds_layer        
         self.bounds_layer.committedGeometriesChanges.connect(self.boundPolyEdit)
         
+        # Hide error messages
         
         self.ui.crs_err.setHidden(True)
         self.ui.mask_saveerr.setHidden(True)
         self.ui.list_saveerr.setHidden(True)
         self.ui.bounds_err.setHidden(True)
         
+        # Connect responses to CRS changes
+        
         self.ui.pixel_bounds.setChecked(True)
         
         self.ui.pixel_bounds.toggled.connect(self.boundConvert)
         self.ui.raster_bounds.toggled.connect(self.boundConvert)
         self.ui.other_bounds.toggled.connect(self.boundConvert)
+        
+        # Connect responses to bound coordinate changes
         
         self.ui.topleft_y.editingFinished.connect(self.boundCheck)
         self.ui.topleft_x.editingFinished.connect(self.boundCheck)
@@ -202,8 +246,12 @@ class QClassiPyCreateTiles(QWidget):
         
     def boundConvert(self, checked):
     
+        """CRS changes"""
+    
         if not checked :
             return
+            
+        # Pixel coordinates
             
         if self.ui.pixel_bounds.isChecked() :
         
@@ -215,9 +263,11 @@ class QClassiPyCreateTiles(QWidget):
             self.ui.crs_predef.setEnabled(False)
             self.ui.crs_err.setHidden(True)
             
+        # Raster CRS
             
         elif self.ui.raster_bounds.isChecked() :
         
+            # Convert bounds to raster CRS
             topleft_x, topleft_y = self.tile_mask_transformer.xy(self.tile_bounds[0], self.tile_bounds[1])
             bottomright_x, bottomright_y = self.tile_mask_transformer.xy(self.tile_bounds[2], self.tile_bounds[3])
             
@@ -232,8 +282,11 @@ class QClassiPyCreateTiles(QWidget):
             self.ui.crs_predef.setEnabled(False)
             self.ui.crs_err.setHidden(True)
             
+        # Other CRS
+            
         elif self.ui.other_bounds.isChecked() :
         
+            # Convert bounds to raster CRS
             topleft_x, topleft_y = self.tile_mask_transformer.xy(self.tile_bounds[0], self.tile_bounds[1])
             bottomright_x, bottomright_y = self.tile_mask_transformer.xy(self.tile_bounds[2], self.tile_bounds[3])
         
@@ -245,12 +298,16 @@ class QClassiPyCreateTiles(QWidget):
             
             if new_crs=="" :
             
+                # If "Other CRS WKT" is empty, use raster CRS
+            
                 self.bounds_crs = self.tile_mask_crs
                 self.ui.crs_wkt.textChanged.disconnect()
                 self.ui.crs_wkt.setText(self.tile_mask_crs)
                 self.ui.crs_wkt.textChanged.connect(lambda: self.boundConvert(True)) 
                 
             else:
+            
+                # If "Other CRS WKT" is not empty, try to convert coordinates to other CRS, else display error
             
                 try:
                 
@@ -269,6 +326,8 @@ class QClassiPyCreateTiles(QWidget):
                 self.bounds_crs = new_crs
                 self.ui.crs_err.setHidden(True)
                 
+        # Write bound coordinates 
+                
         self.ui.topleft_y.setEnabled(True)
         self.ui.topleft_x.setEnabled(True)
         self.ui.bottomright_x.setEnabled(True)
@@ -285,6 +344,10 @@ class QClassiPyCreateTiles(QWidget):
         self.ui.bottomright_y.setCursorPosition(0)      
             
     def boundCheck(self):
+    
+        """Bounds edited"""
+
+        # Retrieve bounds in pixel coordinates
 
         topleft_y = float(self.ui.topleft_y.text())
         topleft_x = float(self.ui.topleft_x.text())
@@ -313,6 +376,8 @@ class QClassiPyCreateTiles(QWidget):
         self.invalid_bounds = False
         self.ui.bounds_err.setHidden(True)
         
+        # Modify bounds frame
+        
         bounds_geometry = QgsGeometry.fromPolygonXY([[QgsPointXY(*self.tile_mask_transformer.xy(self.tile_bounds[0], self.tile_bounds[1])),
                                                       QgsPointXY(*self.tile_mask_transformer.xy(self.tile_bounds[0], self.tile_bounds[3])),
                                                       QgsPointXY(*self.tile_mask_transformer.xy(self.tile_bounds[2], self.tile_bounds[3])),
@@ -325,13 +390,10 @@ class QClassiPyCreateTiles(QWidget):
         self.bounds_layer.changeGeometry(1, bounds_geometry)
         self.bounds_layer.commitChanges()
         self.bounds_layer.committedGeometriesChanges.connect(self.boundPolyEdit)
-        '''
-        except:
-        
-            self.invalid_bounds = True
-            self.ui.bounds_err.setHidden(False)
-        '''
+
     def boundPolyEdit(self):
+    
+        """Bounds changed by modifying frame"""
     
         bounds_geometry = shapely.from_wkt(self.bounds_layer.getGeometry(1).asWkt()).exterior.coords.xy
         
@@ -345,6 +407,8 @@ class QClassiPyCreateTiles(QWidget):
         
     def predefCRS(self):
     
+        """Predefined button clicked, writing CRS WKT"""
+    
         dialog = QgsProjectionSelectionDialog()
         dialog.exec_()
 
@@ -354,6 +418,8 @@ class QClassiPyCreateTiles(QWidget):
         self.ui.crs_wkt.setText(wkt)
         
     def addBand(self):
+    
+        """Add band to Mask bands table"""
     
         self.ui.band_table.itemChanged.disconnect()
     
@@ -379,6 +445,8 @@ class QClassiPyCreateTiles(QWidget):
             
     def rmBand(self):
     
+        """Remove band from Mask bands table"""
+    
         if self.ui.band_table.rowCount()==1 :
             return
     
@@ -396,11 +464,15 @@ class QClassiPyCreateTiles(QWidget):
         self.ui.band_table.itemChanged.connect(self.editBand)
         
     def editBand(self):
+    
+        """Edit band names in Mask bands table"""
 
         band_num=self.ui.band_table.rowCount()
         band_names = [self.ui.band_table.item(row, 0).text() for row in range(0,band_num)]
         
     def saveBrowse(self, path_type):
+    
+        """Browse for the mask and tile list paths"""
     
         if path_type=='mask' :
             fname=QFileDialog.getSaveFileName(self, "Save file", os.path.join(self.browse_dir, 'mask.tif'), "TIF (*.tif *.tiff)")
@@ -416,6 +488,8 @@ class QClassiPyCreateTiles(QWidget):
         
     def WHCheck(self, dim):
     
+        """Check that the width and height inputs are numbers"""
+    
         if dim=='width' :
             try:
                 width = int(self.ui.tile_width.text())
@@ -429,9 +503,13 @@ class QClassiPyCreateTiles(QWidget):
         
     def saveTiles(self):
     
+        """Save tile list and mask"""
+    
         if self.invalid_bounds :
             self.ui.bounds_err.setHidden(False)
             return
+            
+        # Check mask path
             
         if self.ui.mask_path_box.isChecked() :
     
@@ -448,6 +526,8 @@ class QClassiPyCreateTiles(QWidget):
         saved_list = False
         saved_mask = False
             
+        # Save list
+            
         if self.ui.list_path_box.isChecked() :
         
             list_path = self.ui.list_save.text()
@@ -461,6 +541,8 @@ class QClassiPyCreateTiles(QWidget):
             tile_width = int(self.ui.tile_width.text())
             height_spacing = int((1-self.ui.height_overlap.value()/100)*tile_height)
             width_spacing = int((1-self.ui.width_overlap.value()/100)*tile_width)
+            
+            # Generate tile positions
 
             pos_y, pos_x = gridPositions(np.array([self.tile_bounds[0], self.tile_bounds[2]], dtype=int),
                                          np.array([self.tile_bounds[1], self.tile_bounds[3]], dtype=int),
@@ -471,11 +553,11 @@ class QClassiPyCreateTiles(QWidget):
                                          
             pos_center_y = pos_y + tile_height/2
             pos_center_x = pos_x + tile_width/2
-                                         
+                                     
+            # Retain only tile positions inside the bounds frame    
             
             bounds_geometry = shapely.from_wkt(self.bounds_layer.getGeometry(1).asWkt()).exterior.coords.xy
             bounds_y, bounds_x = self.tile_mask_transformer.rowcol(np.array(bounds_geometry[0]), np.array(bounds_geometry[1]))
-
 
             contained = shapely.contains_xy(shapely.Polygon(np.hstack([np.array(bounds_x)[:,np.newaxis], np.array(bounds_y)[:,np.newaxis]])), pos_center_x, pos_center_y)
                                          
@@ -491,6 +573,8 @@ class QClassiPyCreateTiles(QWidget):
             
             saved_list = True
         
+        # Save mask
+        
         if self.ui.mask_path_box.isChecked() :
 
             band_num=self.ui.band_table.rowCount()        
@@ -498,6 +582,8 @@ class QClassiPyCreateTiles(QWidget):
             
             band_dict = dict()
             band_values_dict = dict()
+            
+            # Default symbology
             
             for band_name in band_names:
             
@@ -507,7 +593,9 @@ class QClassiPyCreateTiles(QWidget):
                 band_dict[band_name] = np.zeros(self.tile_mask_shape, dtype=np.uint8)
                                                
             metadata = dict()
-            metadata['qclassipy_values'] = str(band_values_dict)     
+            metadata['qclassipy_values'] = str(band_values_dict)   
+            
+            # Generate mask GeoTIFF  
 
             generateTiff(mask_path, 
                          band_dict, 
@@ -517,6 +605,8 @@ class QClassiPyCreateTiles(QWidget):
                          metadata = metadata)
             
             saved_mask = True
+        
+        # "Saved" message
         
         if saved_list or saved_mask :
             
@@ -528,6 +618,8 @@ class QClassiPyCreateTiles(QWidget):
             self.saved_tmr.start(1000)
                 
     def closeEvent(self, event):
+    
+        """Close tab"""
 
         if self.bounds_layer is not None :
         

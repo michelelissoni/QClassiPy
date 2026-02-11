@@ -1,3 +1,14 @@
+"""
+Filename: qclassipy.py
+Author: Michele Lissoni
+Date: 2026-02-10
+"""
+
+"""
+Initialization of the plugin buttons and GUI. Check for dependency problems.
+"""
+
+
 import os
 import sys
 import platform
@@ -36,6 +47,7 @@ def get_python_executable():
     return executable, path_exists     
 
 def checkPackages():
+    """Check whether all the necessary packages can be imported."""
 
     missing_packages = []
     package_errors = []
@@ -61,9 +73,14 @@ def checkPackages():
     try:
         import shapely
         shapely_geos_major, shapely_geos_minor, _ = shapely.geos_version
-        #if shapely_geos_major != Qgis.geosVersionMajor() or shapely_geos_minor != Qgis.geosVersionMinor():
-        #    missing_packages.append('shapely')
-        #    package_errors.append(f"Shapely GEOS is {shapely.geos_version_string}, but QGIS GEOS version is {Qgis.geosVersion()}. Consider uninstalling shapely and reinstalling with `pip install shapely --no-binary shapely`.")
+        
+        # Error message for incompatibility between the QGIS and Shapely versions of GEOS. May not be necessary.
+        '''
+        if shapely_geos_major != Qgis.geosVersionMajor() or shapely_geos_minor != Qgis.geosVersionMinor():
+            missing_packages.append('shapely')
+            package_errors.append(f"Shapely GEOS is {shapely.geos_version_string}, but QGIS GEOS version is {Qgis.geosVersion()}. Consider uninstalling shapely and reinstalling with `pip install shapely --no-binary shapely`.")
+        '''
+        
     except Exception as e:
         package_errors.append(type(e).__name__ +':  '+str(e))
         missing_packages.append('shapely')
@@ -75,6 +92,9 @@ def checkPackages():
     except Exception as e:
         package_errors.append(type(e).__name__ +':  '+str(e))
         missing_packages.append('osgeo')
+        
+    # Currently, osgeo.gdal_array is incompatible with NumPy 2. To catch the error,
+    # it is necessary to import it in a subprocess.
         
     python_executable, path_exists = get_python_executable()
     
@@ -103,6 +123,9 @@ class QClassiPy:
         self.missing_packages, self.package_errors = checkPackages()
         
     def initGui(self):
+        """Initialize the commands in the plugin menu and load the icon in the plugin bar."""
+
+        # Load font for optimal visualization
 
         font_file = os.path.join(font_dir, "Ubuntu-R.ttf")
         font_id = QFontDatabase.addApplicationFont(font_file)
@@ -112,6 +135,8 @@ class QClassiPy:
             self.best_font = QFont(loaded_fonts[0], 11)
         else:
             self.best_font = None
+    
+        # QActions to open the QClassiPy tabs
     
         self.draw_mask_action = QAction(QIcon(os.path.join(icon_dir, 'qcl_icon.svg')),
                                 "Draw mask",
@@ -124,12 +149,14 @@ class QClassiPy:
         self.merge_masks_action = QAction(QIcon(),
                                   "Merge masks",
                                   self.iface.mainWindow())
-                              
+                           
         self.draw_mask_action.triggered.connect(lambda: self.run(1))
         self.create_tiles_action.triggered.connect(lambda: self.run(0))
         self.merge_masks_action.triggered.connect(lambda: self.run(2))
+
+        # Add the actions to the plugin menu entries and the plugin bar
         
-        self.iface.addToolBarIcon(self.draw_mask_action)
+        self.iface.addToolBarIcon(self.draw_mask_action) # The tool bar icon opens the Draw Mask tab
         
         self.iface.addPluginToMenu("&QClassiPy", self.create_tiles_action)
         self.iface.addPluginToMenu("&QClassiPy", self.draw_mask_action)
@@ -145,6 +172,8 @@ class QClassiPy:
         
     def run(self, action_clicked):
     
+        """Open the GUI in the dock widget."""
+    
         python_version = sys.version
         
         if sys.version < '3' :
@@ -155,6 +184,8 @@ class QClassiPy:
             msg.exec_()
             
             return
+            
+        # Error message for dependency issues    
             
         if len(self.missing_packages) > 0:
         
@@ -171,13 +202,18 @@ class QClassiPy:
             
             return
             
+        # Create file that will contain default browse directory
+        
         browsedir_path = os.path.join(layer_dir, 'browsedir.txt')
         if not os.path.exists(browsedir_path):
             with open(browsedir_path, 'w') as outfile:
                 outfile.write('')
+                        
+        # Open the dock widget
                         
         from .gui.dock_widget import QClassiPyDockWidget
 
         self.dock = QClassiPyDockWidget(tab_clicked = action_clicked, font = self.best_font)
         
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock)
+        

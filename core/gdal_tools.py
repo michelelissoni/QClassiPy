@@ -1,7 +1,29 @@
+"""
+Filename: gdal_tools.py
+Author: Michele Lissoni
+Date: 2026-02-10
+"""
+
+"""
+
+Some geospatial tools to replace those cannot be imported from the rasterio and
+pyproj libraries due to dependency issues.
+
+    - generateTiff : a function to generate a multi-band GeoTIFF file.
+    - rasterizeLayer : a function to burn vector data into a raster.
+    
+    - AffineTransformer : a class to carry out conversions between pixel and geographic coordinates.
+    
+    - CoordTransformXY: a class to carry out conversions between coordinate reference systems.
+    
+"""
+
 import os
 import numpy as np
 from osgeo import gdal, ogr, osr
 from packaging.version import Version
+
+# GDAL data types corresponding to int, uint and float widths.
 
 gdal_version = Version(gdal.__version__)
 
@@ -25,11 +47,28 @@ if gdal_version>=Version('3.11') :
 
 def generateTiff(outfile, band_dict, transform, shape, crs, metadata = None):
 
+    """
+    Generate a GeoTIFF file.
+    
+    Arguments:
+    - outfile (str): the file name.
+    - band_dict (dict): the raster data, a dictionary mapping band names to 2D NumPy arrays.
+    - transform (tuple): the raster geotransform.
+    - shape (tuple): the raster shape
+    - crs (str): the raster coordinate system, in WKT format.
+    
+    Keywords:
+    - metadata (dict): the raster metadata
+    """
+
     out_ext = os.path.splitext(outfile)[1]
     if out_ext != '.tif' and out_ext != '.tiff' :
         raise ValueError("The outfile should have a .tif or .tiff extension.")
         
     band_names = list(band_dict.keys())
+    
+    # Determine dtype
+    
     dtype = band_dict[band_names[0]].dtype
        
     I=1
@@ -51,6 +90,8 @@ def generateTiff(outfile, band_dict, transform, shape, crs, metadata = None):
     dtype_size = np.array([1], dtype=dtype).itemsize
     gdal_dtype = type_dict[type_sizes[min(np.searchsorted(type_sizes, dtype_size), len(type_sizes)-1)]]
     
+    # Create file
+    
     height, width = shape
     
     driver = gdal.GetDriverByName("GTiff")
@@ -65,6 +106,8 @@ def generateTiff(outfile, band_dict, transform, shape, crs, metadata = None):
     
     ds.SetGeoTransform(transform)
     ds.SetProjection(crs)
+    
+    # Write file
     
     for i, band_name in enumerate(band_names):
         band = ds.GetRasterBand(i+1)
@@ -90,16 +133,42 @@ def rasterizeLayer(
     priority = None,
     dtype = np.uint8
 ):
+
+    """
+    Burn a vector layer into a raster.
+    
+    Arguments:
+    - vector_path (str): the vector file.
+    - attribute (str): the attribute whose value must be burned into the raster.
+    - out_shape (tuple): raster shape (height,width).
+    - transform (tuple): the raster geotransform.
+    - crs (str): the raster coordinate system, in WKT format.
+    
+    Keywords:
+    - layer_name (str): the name of the layer, set if the vector file is a GeoPackage.
+    - nodata (scalar): the value to set for pixels not covered by the vector
+    - tmp_output_path (str): the function needs to write a temporary raster file, specify here its path.
+    - priority (tuple): tuple in the form (`priority_field`, `priority_values`). If set, the features will
+                        be burned into the raster on the basis of the value in the `priority_field`, in the order 
+                        shown in `priority_values` (last value has highest priority).
+    - dtype: raster data type
+    
+    Returns:
+    - array: the raster with the burned-in values is returned as a 2D array.
+    """
+
     height, width = out_shape
     x0, px_w, rot_x, y0, rot_y, px_h = transform
 
-    # Compute extent string (QGIS expects xmin,xmax,ymin,ymax)
+    # Compute extent string
     xmin = x0
     xmax = x0 + px_w * width
     ymax = y0
-    ymin = y0 + px_h * height   # px_h is negative for north-up rasters
+    ymin = y0 + px_h * height
 
     extent_str = f"{xmin},{xmax},{ymin},{ymax}"
+    
+    # Create temporary GeoTIFF
     
     drv = gdal.GetDriverByName("GTiff")   
     
@@ -118,8 +187,12 @@ def rasterizeLayer(
         priority_field = ''
         priority_values = []
     
+    # Open vector file
+    
     vds = ogr.Open(vector_path)
     vl = vds.GetLayer(layer_name)
+    
+    # Rasterize polygons with non-prioritary values
     
     priority_values_sql = '('+', '.join([str(priority_value) for priority_value in priority_values])+')'
     
@@ -129,6 +202,8 @@ def rasterizeLayer(
                    vl,
                    options = ["ALL_TOUCHED=FALSE", 
                               f"ATTRIBUTE={attribute}"])
+                              
+    # Rasterize polygons with priority values
                               
     for i in range(0,len(priority_values)):
     
@@ -160,18 +235,34 @@ def rasterizeLayer(
 
 class AffineTransformer:
 
+    """
+    Class to carry out transformation between raster and geographic coordinates.
+    Replicates the rasterio.transform.AffineTransformer class.
+    """
+    
     def __init__(self, transform):
     
+        """
+        Initialize the class.
+        
+        Arguments:
+        - transform (tuple): geotransform.
+        """    
+    
+        # Forward matrix: pixel to geographic
         self.fwd_matrix = np.array([[transform[0], transform[1], transform[2]],
                                     [transform[3], transform[4], transform[5]]])
                                     
         inv_transform = gdal.InvGeoTransform(transform)
         
+        # Inverse matrix: geographic to pixel
         self.inv_matrix = np.array([[inv_transform[0], inv_transform[1], inv_transform[2]],
                                     [inv_transform[3], inv_transform[4], inv_transform[5]]])
                                     
     def xy(self, rows, cols):
-    
+        """
+        Pixel to geographic.
+        """
         try:
             length = len(rows)
             scalar = False
@@ -195,7 +286,9 @@ class AffineTransformer:
         return x, y
         
     def rowcol(self, x, y):
-    
+        """
+        Geographic to pixel. 
+        """     
         try:
             length = len(x)
             scalar = False
@@ -220,6 +313,10 @@ class AffineTransformer:
         
 class CoordTransformXY:
 
+    """
+    Class to carry out transforms between coordinate systems
+    """
+
     def __init__(self, src_crs, dst_crs):
     
         src_srs = osr.SpatialReference()
@@ -228,15 +325,15 @@ class CoordTransformXY:
         dst_srs.ImportFromWkt(dst_crs)
         
         self.src_srs = src_srs
-        self.src_geog = src_srs.IsGeographic()
+        self.src_geog = src_srs.IsGeographic() # Is Latlon?
         self.dst_srs = dst_srs
-        self.dst_geog = dst_srs.IsGeographic()
+        self.dst_geog = dst_srs.IsGeographic() # Is Latlon?
         
         self.transformer = osr.CoordinateTransformation(src_srs, dst_srs)
         
     def transform(self, x, y):
     
-        if self.src_geog :
+        if self.src_geog : 
             input_x = y
             input_y = x
         else:

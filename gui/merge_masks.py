@@ -1,3 +1,15 @@
+"""
+Filename: merge_masks.py
+Author: Michele Lissoni
+Date: 2026-02-11
+"""
+
+"""
+
+The QClassiPyMergeMasks class handles the "Merge masks" tab.
+
+"""
+
 from qgis.PyQt.QtWidgets import QWidget, QFileDialog
 from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtCore import QTimer
@@ -29,6 +41,8 @@ class QClassiPyMergeMasks(QWidget):
 
     def __init__(self, parent = None, font = QFont()):
     
+        """Initialization"""
+    
         super(QClassiPyMergeMasks, self).__init__(parent = parent)
         
         self.ui = Ui_QClassiPyMergeMasks()
@@ -54,19 +68,20 @@ class QClassiPyMergeMasks(QWidget):
         self.ui.list1_change_file.clicked.connect(lambda: self.listChangeFile(1))
         self.ui.list2_change_file.clicked.connect(lambda: self.listChangeFile(2))
         
-        self.ui.merge_button.clicked.connect(self.mergeMasks)
+        self.ui.merge_button.clicked.connect(self.mergeMasks) # MERGE button
         self.ui.merged_message.setHidden(True)
         
         self.merged_tmr = QTimer()
         self.merged_tmr.setSingleShot(True)
         self.merged_tmr.timeout.connect(lambda: self.ui.merged_message.setHidden(True))
-
         
         with open(os.path.join(layer_dir, 'browsedir.txt'), 'r') as infile:
             browse_dir = infile.read()
             self.browse_dir = browse_dir if os.path.isdir(browse_dir) else ""  
         
     def listBrowse(self, num):
+    
+        """Input tile lists browse"""
     
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "CSV (*.csv)")
         browse_dir = os.path.split(fname)[0]
@@ -85,6 +100,8 @@ class QClassiPyMergeMasks(QWidget):
             
     def saveBrowse(self, path_type):
     
+        """Merged outputs (mask and tile list) browse"""
+    
         if path_type == 'mask' :
             fname, _ = QFileDialog.getSaveFileName(self, "Save file", os.path.join(self.browse_dir, 'mask.tif'), "TIF (*.tif *.tiff)")
             self.ui.mask_save.setText(fname)
@@ -98,6 +115,8 @@ class QClassiPyMergeMasks(QWidget):
         self.browse_dir = os.path.split(fname)[0] 
         
     def listCheck(self, list_filename):
+    
+        """Check that the tile lists contain all the columns"""
         
         file_df = None
         valid = True
@@ -121,6 +140,8 @@ class QClassiPyMergeMasks(QWidget):
         
     def listChangeFile(self, num):
     
+        """Update mask path"""
+    
         if num == 1 :
             self.ui.list1_err.setHidden(True)
             list_filename = self.ui.list1_load.text()
@@ -131,7 +152,7 @@ class QClassiPyMergeMasks(QWidget):
         self.ui.shape_err.setHidden(True)
         self.ui.tile_err.setHidden(True)
             
-        time.sleep(0.5)
+        time.sleep(0.5) # Pause so that if the new list is not valid, the user can see the error message disappear and reappear.
     
         valid, valid_except_filename, file_df = self.listCheck(list_filename)
         
@@ -141,7 +162,7 @@ class QClassiPyMergeMasks(QWidget):
             elif num == 2 :
                 self.ui.list2_err.setHidden(False)
 
-            return     
+            return
         
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "TIF (*.tif *.tiff)")
         
@@ -155,6 +176,8 @@ class QClassiPyMergeMasks(QWidget):
         
     def listsMasksCompatible(self):
     
+        """Check if the two lists are compatible and open their raster files"""
+    
         self.ui.list1_err.setHidden(True)
         self.ui.list2_err.setHidden(True)
         self.ui.shape_err.setHidden(True)
@@ -162,6 +185,8 @@ class QClassiPyMergeMasks(QWidget):
     
         valid1, _, list1_df = self.listCheck(self.ui.list1_load.text())        
         valid2, _, list2_df = self.listCheck(self.ui.list2_load.text())
+        
+        # Open mask 1
         
         try:
             assert os.path.exists(list1_df['filename'].iloc[0])
@@ -181,7 +206,9 @@ class QClassiPyMergeMasks(QWidget):
             mask_ds = None
             
         except:
-            valid1 = False  
+            valid1 = False
+        
+        # Open mask 2
 
         try:
             assert os.path.exists(list2_df['filename'].iloc[0])
@@ -211,9 +238,13 @@ class QClassiPyMergeMasks(QWidget):
         if not valid1 or not valid2 :
             return False, None, None, None, None, None, None, None, None, None, None
             
+        # Check if masks have the same shape
+            
         masks_compatible = shape1==shape2 and mask1.dtype == mask2.dtype
         if not masks_compatible :
             self.ui.shape_err.setHidden(False)
+        
+        # Check if the two lists have the same tiles
         
         list1_df = list1_df.sort_values(['x','y'], ignore_index=True)
         list2_df = list2_df.sort_values(['x','y'], ignore_index=True)
@@ -228,6 +259,9 @@ class QClassiPyMergeMasks(QWidget):
             
     def mergeMasks(self):
     
+        """Merge masks"""
+    
+        # Check if lists and masks are compatible
         compatible, mask1, band_names1, metadata1, list1_df, mask2, band_names2, metadata2, list2_df, transform, crs = self.listsMasksCompatible()
     
         if not compatible :
@@ -248,8 +282,12 @@ class QClassiPyMergeMasks(QWidget):
         if save_error :
             return
         
+        
+        # Check which tiles overlap (see QClassiPy/core/positions.py)
         overlaps = positionOverlaps(list1_df['y'].values, list1_df['x'].values, list1_df['height'].values, list1_df['width'].values)
             
+        # Check which tiles have been completed in list 1 and not 2, 2 and not 1, both 1 and 2    
+        
         completed_1not2 = list1_df.index.values[(list1_df['priority']==COMPLETED_PRIORITY) & (list2_df['priority']!=COMPLETED_PRIORITY)]
         completed_2not1 = list1_df.index.values[(list1_df['priority']!=COMPLETED_PRIORITY) & (list2_df['priority']==COMPLETED_PRIORITY)]
         completed_1and2 = list1_df.index.values[(list1_df['priority']==COMPLETED_PRIORITY) & (list2_df['priority']==COMPLETED_PRIORITY)]
@@ -262,12 +300,18 @@ class QClassiPyMergeMasks(QWidget):
         cols_1and2 = cols1[np.isin(cols1, cols2)]
         
         final_list = list1_df.copy()
-        final_list.loc[:, cols_2not1] = list2_df.loc[:, cols_2not1]
+        final_list.loc[:, cols_2not1] = list2_df.loc[:, cols_2not1] # Add any additional columns in list 2
         
-        final_list.loc[completed_2not1, cols_1and2] = list2_df.loc[completed_2not1, cols_1and2]
+        final_list.loc[completed_2not1, cols_1and2] = list2_df.loc[completed_2not1, cols_1and2] # For the completed tiles in list 2 only, 
+                                                                                                # the columns have the list 2 values
         
-        final_list['overlap'] = False
-        final_list['tile_list'] = np.ones(len(final_list), dtype=int)*(-1)
+        
+        # The final list has an 'overlap' column, indicating whether a given tile had an overlap
+        # between two completed tiles from different lists. It also has a 'tile_list' column,
+        # indicating where the values in the final mask come from for each tile.
+        
+        final_list['overlap'] = False 
+        final_list['tile_list'] = np.ones(len(final_list), dtype=int)*(-1) # 'tile_list' is set to -1 for uncompleted tiles
         
         final_list.loc[completed_1and2, 'overlap'] = True
         
@@ -281,7 +325,7 @@ class QClassiPyMergeMasks(QWidget):
         final_list.loc[completed_1, 'tile_list'] = 1
         final_list.loc[completed_2not1, 'tile_list'] = 2
         
-        final_mask = mask1.copy()
+        final_mask = mask1.copy() # The final mask is the same as mask 1 everywhere except in the tiles completed only in list 2
         
         for index in completed_2not1:
             x = int(list2_df.loc[index, 'x'])
@@ -291,6 +335,9 @@ class QClassiPyMergeMasks(QWidget):
             
             final_mask[:, y:y+height, x:x+width] = mask2[:, y:y+height, x:x+width]
             
+        # Transferring again the values for the completed tiles in list 1, so that
+        # in overlapping areas mask 1 has priority.
+            
         for index in completed_1:
             x = int(list1_df.loc[index, 'x'])
             y = int(list1_df.loc[index, 'y'])
@@ -298,11 +345,14 @@ class QClassiPyMergeMasks(QWidget):
             width = int(list1_df.loc[index, 'width'])
             
             final_mask[:, y:y+height, x:x+width] = mask1[:, y:y+height, x:x+width]
-        
+
+        # Band names for mask 1 prevail, unless one band has an empty name in mask 1, then the mask 2 name is used.
+            
         band_names = []
         
         valid_bands1 = True
         valid_bands2 = True
+        
         for i in range(0,len(band_names1)):
             valid_band1 = band_names1[i]!=""
             valid_band2 = band_names2[i]!=""
@@ -321,6 +371,9 @@ class QClassiPyMergeMasks(QWidget):
         
         band_names1 = band_names1 if valid_bands1 else band_names
         band_names2 = band_names2 if valid_bands2 else band_names
+        
+        # QClassiPy symbology: mask 1 prevails, but if the symbology in mask 2 encompasses values
+        # not predicted in mask 2, they are added        
         
         band_values_dict1 = eval(metadata1['qclassipy_values']) if 'qclassipy_values' in metadata1 and valid_bands1 else {band_name: {} for band_name in band_names}
         band_values_dict2 = eval(metadata2['qclassipy_values']) if 'qclassipy_values' in metadata2 and valid_bands2 else {band_name: {} for band_name in band_names}
@@ -351,6 +404,7 @@ class QClassiPyMergeMasks(QWidget):
                     category_name = values_dict1[value][0] if not is_null_value else ""
                     if is_null_value :
                         null_value = value
+                # If a value is not in symbology 1 but is in symbology 2, it prevails
                 elif value in values_dict2 :
                     is_null_value = values_dict2[value][2]
                     category_name = values_dict2[value][0] if not is_null_value else ""
@@ -362,13 +416,15 @@ class QClassiPyMergeMasks(QWidget):
                 
                 category_color = str(colorlist[j].name())
                 final_values_dict[value] = [category_name, category_color, is_null_value]
-                    
+            
+            # Set new null value if none is found in the symbologies
             if null_value is None :
                 null_value = 0 if 0 not in values_in_dicts else np.amax(uniq_values_final) + 1
             final_values_dict[null_value] = ["NULL", str(default_color.name()), True]
                 
             final_band_values_dict[band_name] = final_values_dict        
-                    
+        
+        # Metadata, copied from mask 1
         final_metadata = metadata1.copy()
         final_metadata['qclassipy_values'] = str(final_band_values_dict)
         
@@ -377,12 +433,16 @@ class QClassiPyMergeMasks(QWidget):
         del final_mask
         gc.collect()
         
+        # Save final mask
+        
         generateTiff(mask_savepath,
                      final_mask_dict,
                      transform,
                      final_mask_shape, 
                      crs, 
                      metadata = final_metadata)
+        
+        # Save final list
         
         final_list.to_csv(list_savepath, index = False)
         
