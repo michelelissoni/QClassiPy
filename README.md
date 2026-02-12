@@ -24,3 +24,8 @@ It is furthermore possible to split large rasters into tiles to edit separately.
 
 [Future improvements](https://github.com/michelelissoni/QClassiPy/blob/main/docs/future.md)
 --->
+
+### Citation
+If you found this plugin useful, you can cite:
+
+Lissoni, M., Doressoundiram, A., and Besse, S.: Deep learning map of fresh crater ejecta on Mercury: a resource for space weathering studies, EPSC-DPS Joint Meeting 2025, Helsinki, Finland, 7–13 Sep 2025, EPSC-DPS2025-256, https://doi.org/10.5194/epsc-dps2025-256, 2025. 
