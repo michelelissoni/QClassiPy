@@ -356,7 +356,7 @@ class TableDockFrames(TableDock):
         selected_row = self.ui.list_table.selectedIndexes()[0].row() if len(self.ui.list_table.selectedIndexes())>0 else self.selected_row_tmp
         self.selected_row_tmp = selected_row
         
-        self.allframes_layer.select(selected_row)
+        self.allframes_layer.select(selected_row + 1)
         self.allframes_layer.selectionChanged.connect(self.layerGroupSelection)
             
     def layerGroupSelection(self):
