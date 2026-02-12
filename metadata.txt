@@ -4,8 +4,13 @@ email=michele.lissoni@obspm.fr
 author=Michele Lissoni
 qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
-description=Custom QGIS plugin for manually drawing raster masks.
-about=Custom QGIS plugin for manually drawing raster masks.
+description=Custom QGIS plugin for manually drawing raster categorical masks.
+about=A QGIS plugin that allows the manual, interactive drawing and editing of classification maps.
+      The user can interactively change the pixel values of a classification raster using intuitive tools: 
+      - Selection: draw a selection shape over the chosen pixels using the QGIS built-in Select Feature tools to change their value.
+      - Brush and Erase: change pixel values by dragging your mouse over them.
+      - Polygons: convert regions of uniform classification into polygons, modify their borders with QGIS built-in tools and see the changes reflected on the raster.
+      It is furthermore possible to split large rasters into tiles to edit separately.
 version=0.2.1 
 repository=http://github.com/michelelissoni/QClassiPy
 
