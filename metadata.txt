@@ -23,7 +23,8 @@ changelog=
     
 tags=raster,thematic,categorical,mask,edit,editing,classification,interactive,draw,brush
 
-homepage=http://github.com/michelelissoni/QClassiPy
+homepage=https://github.com/michelelissoni/QClassiPy/blob/main/README.md
+tracker=https://github.com/michelelissoni/QClassiPy/issues
 icon=icons/qcl_icon.svg
 
 experimental=True
