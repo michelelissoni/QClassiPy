@@ -196,7 +196,7 @@ class QClassiPy:
 
             msg = QMessageBox()
             msg.setWindowTitle("Missing packages")
-            msg.setText("Install or fix these Python packages<br>and restart QGIS.<br><br>"+package_string)
+            msg.setText("Install or fix these Python packages<br>and restart QGIS.<br><br>"+package_string+"<br><br><a href='https://github.com/michelelissoni/QClassiPy/blob/main/docs/dependencies.md'>Help</a>")
             msg.addButton(QMessageBox.Ok)
             msg.exec_()
             
