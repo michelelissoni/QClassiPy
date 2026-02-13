@@ -21,6 +21,8 @@ import os
 import time
 import numpy as np
 import pandas as pd
+import ast
+import warnings
 
 import shapely
 from osgeo import gdal
@@ -407,7 +409,14 @@ class QClassiPyDrawMask(QWidget):
             # Check for QClassiPy color symbology
             
             qclassipy_metadata = 'qclassipy_values' in metadata # QClassiPy symbology
-            qclassipy_metadata_dict = eval(metadata['qclassipy_values']) if qclassipy_metadata else dict()
+            if qclassipy_metadata:
+                try:
+                    qclassipy_metadata_dict = ast.literal_eval(metadata['qclassipy_values'])
+                except:
+                    warnings.warn("Potentially harmful code in the `qclassipy_values` slot of the metadata.")
+                    qclassipy_metadata_dict = dict()
+            else:
+                qclassipy_metadata_dict = dict()
             
             # Get band_names
             
@@ -503,7 +512,7 @@ class QClassiPyDrawMask(QWidget):
                                  )
                                         
         try:
-            band_values_dict = eval(self.poly_img.metadata['qclassipy_values'])
+            band_values_dict = ast.literal_eval(self.poly_img.metadata['qclassipy_values'])
             assert type(band_values_dict)==dict
         except:
             band_values_dict = dict()

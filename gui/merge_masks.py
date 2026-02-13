@@ -17,6 +17,9 @@ from qgis.PyQt.QtCore import QTimer
 import os
 import time
 import gc
+import ast
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -373,10 +376,27 @@ class QClassiPyMergeMasks(QWidget):
         band_names2 = band_names2 if valid_bands2 else band_names
         
         # QClassiPy symbology: mask 1 prevails, but if the symbology in mask 2 encompasses values
-        # not predicted in mask 2, they are added        
+        # not predicted in mask 2, they are added  
         
-        band_values_dict1 = eval(metadata1['qclassipy_values']) if 'qclassipy_values' in metadata1 and valid_bands1 else {band_name: {} for band_name in band_names}
-        band_values_dict2 = eval(metadata2['qclassipy_values']) if 'qclassipy_values' in metadata2 and valid_bands2 else {band_name: {} for band_name in band_names}
+        empty_band_values_dict = {band_name: {} for band_name in band_names}  
+        
+        if 'qclassipy_values' in metadata1 and valid_bands1:
+            try:
+                band_values_dict1 = ast.literal_eval(metadata1['qclassipy_values'])
+            except:
+                warnings.warn("Potentially harmful code in the `qclassipy_values` slot of the metadata of mask 1.")
+                band_values_dict1 = empty_band_values_dict.copy()
+        else:
+            band_values_dict1 = empty_band_values_dict.copy()   
+        
+        if 'qclassipy_values' in metadata2 and valid_bands2:
+            try:
+                band_values_dict2 = ast.literal_eval(metadata2['qclassipy_values'])
+            except:
+                warnings.warn("Potentially harmful code in the `qclassipy_values` slot of the metadata of mask 2.")
+                band_values_dict2 = empty_band_values_dict.copy()
+        else:
+            band_values_dict2 = empty_band_values_dict.copy()  
         
         final_band_values_dict = dict()
         
