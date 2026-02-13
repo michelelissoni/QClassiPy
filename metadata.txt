@@ -11,15 +11,16 @@ about=A QGIS plugin that allows the manual, interactive drawing and editing of c
       - Brush and Erase: change pixel values by dragging your mouse over them.
       - Polygons: convert regions of uniform classification into polygons, modify their borders with QGIS built-in tools and see the changes reflected on the raster.
       It is furthermore possible to split large rasters into tiles to edit separately.
-version=0.3.0
+version=0.3.1
 repository=http://github.com/michelelissoni/QClassiPy
 
 category=Raster
 changelog=
+    0.3.1 - Removed some bugs, added comments, improved quality
     0.3.0 - Added remove class options 
     0.2.1 - Fixed bug with list opening, removed layer files
     0.2.0 - Fixed dependencies, improved brush and polygon
-    0.1.0 - Released the plugin
+    0.1.0 - Created the plugin repository
     
 tags=raster,thematic,categorical,mask,edit,editing,classification,interactive,draw,brush
 
