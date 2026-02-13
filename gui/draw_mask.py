@@ -24,7 +24,6 @@ import pandas as pd
 import ast
 import warnings
 
-import shapely
 from osgeo import gdal
 
 from ..core.polyimage import PolyImage

@@ -17,8 +17,6 @@ from qgis.PyQt.QtGui import QFont
 
 from qgis.gui import QgsDockWidget
 
-import os
-
 from .draw_mask import QClassiPyDrawMask
 from .create_tiles import QClassiPyCreateTiles
 from .merge_masks import QClassiPyMergeMasks

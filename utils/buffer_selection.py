@@ -10,13 +10,11 @@ The BufferSelectionTool controls the brush and erase tools.
 
 """
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal, QPoint
+from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor
 
-from qgis.core import QgsPoint, QgsGeometry, QgsVectorLayer, QgsWkbTypes
+from qgis.core import QgsGeometry, QgsWkbTypes
 from qgis.gui import QgsMapTool, QgsRubberBand
-
-import qgis.utils
 
 from ..gui.constants import Colors
 

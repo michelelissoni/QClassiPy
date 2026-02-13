@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 import shapely
-from osgeo import osr, ogr, gdal
+from osgeo import osr, ogr
 
 from .gdal_tools import generateTiff, AffineTransformer
 

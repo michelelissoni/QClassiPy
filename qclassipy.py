@@ -15,8 +15,7 @@ import platform
 import subprocess
 import warnings
 
-from qgis.core import Qgis
-from qgis.PyQt.QtWidgets import QAction, QApplication, QMessageBox 
+from qgis.PyQt.QtWidgets import QAction, QMessageBox 
 from qgis.PyQt.QtGui import QIcon, QFontDatabase, QFont
 from qgis.PyQt.QtCore import Qt
 
@@ -76,6 +75,8 @@ def checkPackages():
         
         # Error message for incompatibility between the QGIS and Shapely versions of GEOS. May not be necessary.
         '''
+        from qgis.core import Qgis
+        
         if shapely_geos_major != Qgis.geosVersionMajor() or shapely_geos_minor != Qgis.geosVersionMinor():
             missing_packages.append('shapely')
             package_errors.append(f"Shapely GEOS is {shapely.geos_version_string}, but QGIS GEOS version is {Qgis.geosVersion()}. Consider uninstalling shapely and reinstalling with `pip install shapely --no-binary shapely`.")

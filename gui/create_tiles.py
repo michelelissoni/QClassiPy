@@ -15,12 +15,9 @@ from qgis.PyQt.QtGui import QColor, QFont
 from qgis.PyQt.QtCore import Qt, QTimer
 
 from qgis.core import *
-from qgis.gui import QgsMapTool, QgsProjectionSelectionDialog, QgsDockWidget
-
-import qgis.utils
+from qgis.gui import QgsProjectionSelectionDialog
 
 import os
-import gc
 import numpy as np
 import pandas as pd
 

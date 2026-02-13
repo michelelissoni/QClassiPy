@@ -1,5 +1,4 @@
 from qgis.PyQt import QtCore, QtGui, QtWidgets
-from qgis.gui import QgsDockWidget
 
 class Ui_QClassiPyDockWidget(object):
     def setupUi(self, QClassiPyDockWidget):

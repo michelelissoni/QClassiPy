@@ -18,8 +18,6 @@ from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.core import *
 from qgis.gui import QgsDockWidget
 
-import qgis.utils
-
 import os
 import numpy as np
 import pandas as pd

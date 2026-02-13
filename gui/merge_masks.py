@@ -26,7 +26,6 @@ import pandas as pd
 from osgeo import gdal
 
 from ..core.positions import positionOverlaps
-from ..core.polyimage import PolyImage
 from ..core.gdal_tools import generateTiff
 from ..ui.all_uis import Ui_QClassiPyMergeMasks
 
