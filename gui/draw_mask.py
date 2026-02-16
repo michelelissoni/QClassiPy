@@ -661,6 +661,9 @@ class QClassiPyDrawMask(QWidget):
         band_name = self.poly_img.band_names[self.ui.band_combo.currentIndex()] # Band name
             
         values = np.unique(self.poly_img.bands[band_name]) # Pixel values in the polyimage
+        print(values)
+        print(np.nonzero(self.poly_img.bands[band_name]==4))
+        
         valid_null_value = null_value in values
         values = np.delete(values, np.flatnonzero(values==null_value))
         values = np.append(null_value, np.sort(values))
@@ -1061,6 +1064,7 @@ class QClassiPyDrawMask(QWidget):
             # Brush tool, handled by the BufferSelectionTool class (see QClassiPy/utils/buffer_selection.py)
             
             tool = BufferSelectionTool(canvas, self.layer, resolution, buffer_size=brush_width)  
+            print(draw_value)
             tool.leftButtonReleased.connect(lambda: self.drawSelection(draw_value=draw_value)) # Connect tool to drawSelection()
             canvas.setMapTool(tool)       
             
@@ -1158,7 +1162,7 @@ class QClassiPyDrawMask(QWidget):
         band_uniq_values = np.unique(self.poly_img.bands[band_name])
         valid_null_value = self.null_value in band_uniq_values
 
-        if (self.ui.layer_brush.isChecked() or self.ui.layer_erase.isChecked()) and change != 'band' :
+        if (self.ui.layer_brush.isChecked() or self.ui.layer_erase.isChecked()) :
             self.layerBrush()
         elif self.ui.layer_poly.isChecked() :
             self.layerPoly(commit = False)
