@@ -205,6 +205,9 @@ class QClassiPy:
             
         # Create file that will contain default browse directory
         
+        if not os.path.isdir(layer_dir):
+            os.path.mkdir(layer_dir)
+        
         browsedir_path = os.path.join(layer_dir, 'browsedir.txt')
         if not os.path.exists(browsedir_path):
             with open(browsedir_path, 'w') as outfile:
