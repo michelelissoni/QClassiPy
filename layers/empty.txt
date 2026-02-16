@@ -1,0 +1,1 @@
+A placeholder to preserve the folder on QGIS download.
