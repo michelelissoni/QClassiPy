@@ -21,6 +21,7 @@ import os
 import time
 import numpy as np
 import pandas as pd
+import shapely
 import ast
 import warnings
 
@@ -620,7 +621,7 @@ class QClassiPyDrawMask(QWidget):
         frame_layer.setExtent(self.layer.extent())
         
         frame_feat=QgsFeature()
-        frame_feat.setGeometry(QgsGeometry.fromWkt(self.poly_img.frame.wkt))
+        frame_feat.setGeometry(QgsGeometry.fromWkt(shapely.to_wkt(self.poly_img.frame, output_dimension=3)))
         frame_layer.dataProvider().addFeature(frame_feat)
         
         # Set frame layer symbology
