@@ -656,8 +656,6 @@ class QClassiPyDrawMask(QWidget):
     
         """Refresh QGIS polyimage layer symbology"""
 
-        print("miao")
-
         null_value = self.null_value # Null value
             
         band_name = self.poly_img.band_names[self.ui.band_combo.currentIndex()] # Band name
