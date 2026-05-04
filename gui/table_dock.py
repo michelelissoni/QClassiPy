@@ -237,7 +237,7 @@ class TableDockFrames(TableDock):
                                    (x_ends[i], y_starts[i]), 
                                    (x_starts[i], y_starts[i])]) 
                                    for i in range(0,len(x_starts))
-                                   ]))
+                                   ]), output_dimension=3)
                                    
             frame_ogr = [ogr.CreateGeometryFromWkb(frame) for frame in frame_list]
             

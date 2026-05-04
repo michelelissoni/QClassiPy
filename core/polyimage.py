@@ -507,7 +507,7 @@ class PolyArray:
         
             df['geometry'] = [shapely.simplify(df['geometry'].iloc[i], simplify_tolerance) for i in range(0,len(df))]
             
-        df['wkb_geom'] = shapely.to_wkb(df['geometry'].values)
+        df['wkb_geom'] = shapely.to_wkb(df['geometry'].values, output_dimension=3)
         df = df.drop('geometry', axis=1)
         
         # Write geometries to layer
