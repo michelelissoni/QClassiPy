@@ -661,8 +661,6 @@ class QClassiPyDrawMask(QWidget):
         band_name = self.poly_img.band_names[self.ui.band_combo.currentIndex()] # Band name
             
         values = np.unique(self.poly_img.bands[band_name]) # Pixel values in the polyimage
-        print(values)
-        print(np.nonzero(self.poly_img.bands[band_name]==4))
         
         valid_null_value = null_value in values
         values = np.delete(values, np.flatnonzero(values==null_value))
