@@ -1062,7 +1062,6 @@ class QClassiPyDrawMask(QWidget):
             # Brush tool, handled by the BufferSelectionTool class (see QClassiPy/utils/buffer_selection.py)
             
             tool = BufferSelectionTool(canvas, self.layer, resolution, buffer_size=brush_width)  
-            print(draw_value)
             tool.leftButtonReleased.connect(lambda: self.drawSelection(draw_value=draw_value)) # Connect tool to drawSelection()
             canvas.setMapTool(tool)       
             
