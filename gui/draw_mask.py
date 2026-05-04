@@ -1292,7 +1292,7 @@ class QClassiPyDrawMask(QWidget):
             band_categories = self.categories.loc[(band_name,),:]
             band_values = band_categories.index.values
             
-            for table_value in range(0,np.amax(band_values)+1):
+            for table_value in range(0,int(np.amax(band_values)+1)):
                 if table_value in band_values:
                     value_color = band_categories.loc[table_value, 'color']
                     is_null = bool(band_categories.loc[table_value, 'null'])
