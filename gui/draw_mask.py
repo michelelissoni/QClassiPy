@@ -430,6 +430,7 @@ class QClassiPyDrawMask(QWidget):
             # Check for QClassiPy color symbology
             
             qclassipy_metadata = 'qclassipy_values' in metadata # QClassiPy symbology
+                        
             if qclassipy_metadata:
                 try:
                     qclassipy_metadata_dict = ast.literal_eval(metadata['qclassipy_values'])
@@ -548,7 +549,7 @@ class QClassiPyDrawMask(QWidget):
                 band_values = list(band_categories.keys())
             else:
                 band_values = []
-            
+                
             other_band_values = np.unique(self.poly_img.bands[band_name])
             other_band_values = other_band_values[~np.isin(other_band_values, band_values)]
             
@@ -581,7 +582,7 @@ class QClassiPyDrawMask(QWidget):
                 else:
                     type_max = None
 
-                max_val = int(np.amax(band_values))
+                max_val = int(np.amax(band_values)) if len(band_values) > 0 else 0
 
                 if 0 not in band_values :
                     null_value = self.type_img(0)
@@ -1305,9 +1306,9 @@ class QClassiPyDrawMask(QWidget):
         for band_name in self.poly_img.band_names:
         
             band_categories = self.categories.loc[(band_name,),:]
-            band_values_dict[band_name] = {band_value: [str(band_categories.loc[band_value, 'def']),
-                                                        str(band_categories.loc[band_value, 'color'].name()),
-                                                        bool(band_categories.loc[band_value, 'null'])] for band_value in band_categories.index.values}
+            band_values_dict[band_name] = {self.type_qgis(band_value): [str(band_categories.loc[band_value, 'def']),
+                                                                        str(band_categories.loc[band_value, 'color'].name()),
+                                                                        bool(band_categories.loc[band_value, 'null'])] for band_value in band_categories.index.values}
                                               
         # Open raster
                                                         

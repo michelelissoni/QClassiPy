@@ -37,6 +37,8 @@ UNCOMPLETED_PRIORITY = Priorities.Uncompleted
 layer_dir = Directories.Layer
 
 default_color = QColor(Colors.Default)
+null_color = QColor(Colors.Default)
+null_color.setAlpha(0)
 colorlist = Colors.Colorlist
 
 class QClassiPyMergeMasks(QWidget):
@@ -335,6 +337,11 @@ class QClassiPyMergeMasks(QWidget):
         
         final_mask = mask1.copy() # The final mask is the same as mask 1 everywhere except in the tiles completed only in list 2
         type_img = final_mask.dtype.type
+        
+        if np.issubdtype(type_img, np.integer) :
+            type_py = int
+        elif np.issubdtype(type_img, np.floating) :
+            type_py = float
 
         for index in completed_2not1:
             x = int(list2_df.loc[index, 'x'])
@@ -424,24 +431,36 @@ class QClassiPyMergeMasks(QWidget):
             
             null_value = None
             
+            used_colors = []
+            absent_values = np.zeros(0, dtype=uniq_values_final.dtype)
+            
             for j, value in enumerate(uniq_values_final):
+            
                 if value in values_dict1 :
                     is_null_value = values_dict1[value][2]
                     category_name = values_dict1[value][0] if not is_null_value else ""
+                    category_color = values_dict1[value][1] if not is_null_value else str(null_color.name())
+                    used_colors.append(QColor(category_color))
                     if is_null_value :
                         null_value = value
                 # If a value is not in symbology 1 but is in symbology 2, it prevails
                 elif value in values_dict2 :
                     is_null_value = values_dict2[value][2]
                     category_name = values_dict2[value][0] if not is_null_value else ""
+                    category_color = values_dict2[value][1] if not is_null_value else str(null_color.name())
+                    used_colors.append(QColor(category_color))
                     if is_null_value and null_value is None :
                         null_value = value
                 else:
-                    is_null_value = False
-                    category_name = ""
+                    absent_values = np.append(absent_values, value)
+                    
+                if value in values_dict1 or value in values_dict2:
+                    final_values_dict[type_py(value)] = [category_name, category_color, is_null_value]
                 
-                category_color = str(colorlist[j].name())
-                final_values_dict[value] = [category_name, category_color, is_null_value]
+            absent_colors = colorlist[~np.isin(colorlist, np.array(used_colors))]
+            
+            for j, absent_value in enumerate(absent_values):
+                final_values_dict[type_py(absent_value)] = ["", str(absent_colors[j].name()), False]
             
             # Set new null value if none is found in the symbologies
             if null_value is None :
@@ -451,7 +470,7 @@ class QClassiPyMergeMasks(QWidget):
                 else:
                     type_max = None
 
-                max_val = int(np.amax(uniq_values_final))
+                max_val = int(np.amax(uniq_values_final)) 
 
                 if 0 not in values_in_dicts :
                     null_value = type_img(0)
@@ -464,7 +483,7 @@ class QClassiPyMergeMasks(QWidget):
                         raise RuntimeError("All valid values are occupied by classes") # Not worth setting up a graceful failure for this right now
                     null_value = type_img(free[0])
 
-            final_values_dict[null_value] = ["NULL", str(default_color.name()), True]
+            final_values_dict[type_py(null_value)] = ["NULL", str(default_color.name()), True]
                 
             final_band_values_dict[band_name] = final_values_dict        
         
@@ -487,6 +506,8 @@ class QClassiPyMergeMasks(QWidget):
                      metadata = final_metadata)
         
         # Save final list
+        
+        final_list['filename'] = mask_savepath
         
         final_list.to_csv(list_savepath, index = False)
         
