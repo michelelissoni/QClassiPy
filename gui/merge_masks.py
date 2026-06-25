@@ -86,6 +86,8 @@ class QClassiPyMergeMasks(QWidget):
         """Input tile lists browse"""
     
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "CSV (*.csv)")
+        if fname == "":
+            return
         browse_dir = os.path.split(fname)[0]
         if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
@@ -130,6 +132,8 @@ class QClassiPyMergeMasks(QWidget):
         if not all( np.isin(['filename','priority','x', 'y', 'width', 'height'], list(file_df.columns)) ) :
             return False, False, file_df
         
+        file_df['filename'] = file_df['filename'].astype(str)
+        
         filename = np.unique(file_df['filename'])
         
         valid_except_filename = len(filename)==1
@@ -167,7 +171,9 @@ class QClassiPyMergeMasks(QWidget):
             return
         
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "TIF (*.tif *.tiff)")
-        
+        if fname == "":
+            return
+
         browse_dir = os.path.split(fname)[0]
         if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
@@ -328,7 +334,8 @@ class QClassiPyMergeMasks(QWidget):
         final_list.loc[completed_2not1, 'tile_list'] = 2
         
         final_mask = mask1.copy() # The final mask is the same as mask 1 everywhere except in the tiles completed only in list 2
-        
+        type_img = final_mask.dtype.type
+
         for index in completed_2not1:
             x = int(list2_df.loc[index, 'x'])
             y = int(list2_df.loc[index, 'y'])
@@ -438,7 +445,25 @@ class QClassiPyMergeMasks(QWidget):
             
             # Set new null value if none is found in the symbologies
             if null_value is None :
-                null_value = 0 if 0 not in values_in_dicts else np.amax(uniq_values_final) + 1
+
+                if np.issubdtype(type_img, np.integer) :
+                    type_max = int(np.iinfo(type_img).max)
+                else:
+                    type_max = None
+
+                max_val = int(np.amax(uniq_values_final))
+
+                if 0 not in values_in_dicts :
+                    null_value = type_img(0)
+                elif type_max is None or max_val + 1 <= type_max :
+                    null_value = type_img(max_val + 1)
+                else:
+                    full_range = np.arange(0, type_max + 1, dtype=type_img)
+                    free = full_range[~np.isin(full_range, values_in_dicts)]
+                    if len(free) == 0 :
+                        raise RuntimeError("All valid values are occupied by classes") # Not worth setting up a graceful failure for this right now
+                    null_value = type_img(free[0])
+
             final_values_dict[null_value] = ["NULL", str(default_color.name()), True]
                 
             final_band_values_dict[band_name] = final_values_dict        

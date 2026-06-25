@@ -48,7 +48,7 @@ class TableDock(QgsDockWidget):
     
         """ Initialization """
     
-        if not issubclass(type(df), pd.core.frame.DataFrame) :
+        if not isinstance(df, pd.DataFrame) :
             raise ValueError('A Pandas dataframe (or child class) is required.')
     
         super(TableDock, self).__init__()
@@ -79,8 +79,8 @@ class TableDock(QgsDockWidget):
         
         # Rows are selectable, one at a time
         
-        self.ui.list_table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.ui.list_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.ui.list_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.ui.list_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         
         # Set up alignments
         
@@ -89,11 +89,11 @@ class TableDock(QgsDockWidget):
                 item = QTableWidgetItem(str(df.iloc[i,j]))
                 
                 if j == 0 :
-                    item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
                 else:
-                    item.setTextAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter)
                     
-                item.setFlags(item.flags() | ~Qt.ItemIsEditable) # Table is not editable
+                item.setFlags(item.flags() | ~Qt.ItemFlag.ItemIsEditable) # Table is not editable
                 
                 self.ui.list_table.setItem(i, j, item)
                 
@@ -151,8 +151,6 @@ class TableDockFrames(TableDock):
             
         positions_present = np.all(np.isin(['y','x','height','width'], columns))
             
-        super(TableDockFrames, self).__init__(df, first_column = 'filename', font = font)
-        
         filenames = np.unique(df['filename'])
         
         gsr_list = []
@@ -258,14 +256,18 @@ class TableDockFrames(TableDock):
         layer = ds.CreateLayer(layer_name, srs, ogr.wkbPolygon)
         
         df = df.iloc[allfile_rows,:]
+
+        super(TableDockFrames, self).__init__(df, first_column = 'filename', font = font)
+
+        self.allfile_rows = allfile_rows
         
         field_conversion = dict()
         for col_name in columns:
         
-            if np.issubdtype(df[col_name].values.dtype, np.integer) :
+            if pd.api.types.is_integer_dtype(df[col_name]) :
                 field_type = ogr.OFTInteger
                 field_conversion[col_name] = int
-            elif np.issubdtype(df[col_name].values.dtype, np.floating) :
+            elif pd.api.types.is_float_dtype(df[col_name]) :
                 field_type = ogr.OFTReal
                 field_conversion[col_name] = float
             else:
@@ -389,7 +391,7 @@ class TableDockFrames(TableDock):
             self.ui.list_table.selectRow(self.selected_row_tmp)
             self.allframes_layer.selectionChanged.connect(self.layerGroupSelection)
         
-        self.ui.list_table.scrollToItem(self.ui.list_table.item(self.selected_row_tmp, 0), QAbstractItemView.PositionAtCenter)
+        self.ui.list_table.scrollToItem(self.ui.list_table.item(self.selected_row_tmp, 0), QAbstractItemView.ScrollHint.PositionAtCenter)
         self.ui.list_table.itemSelectionChanged.connect(self.tableGroupSelection)
         
     def removeFrames(self):
@@ -406,6 +408,10 @@ class TableDockFrames(TableDock):
             QgsProject.instance().removeMapLayer(self.allframes_layer.id())
         except:
             pass
+
+    def getRow(self):
+        row = super().getRow()
+        return None if row is None else int(self.allfile_rows[row])
         
     def closeEvent(self, event):
     

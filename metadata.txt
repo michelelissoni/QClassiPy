@@ -3,7 +3,7 @@ name=QClassiPy
 email=michele.lissoni@obspm.fr
 author=Michele Lissoni
 qgisMinimumVersion=3.34
-qgisMaximumVersion=3.99
+qgisMaximumVersion=4.99
 description=Custom QGIS plugin for manually drawing raster categorical masks.
 about=A QGIS plugin that allows the manual, interactive drawing and editing of classification maps.
       The user can interactively change the pixel values of a classification raster using intuitive tools: 
@@ -11,11 +11,12 @@ about=A QGIS plugin that allows the manual, interactive drawing and editing of c
       - Brush and Erase: change pixel values by dragging your mouse over them.
       - Polygons: convert regions of uniform classification into polygons, modify their borders with QGIS built-in tools and see the changes reflected on the raster.
       It is furthermore possible to split large rasters into tiles to edit separately.
-version=0.3.5
+version=0.4.0
 repository=http://github.com/michelelissoni/QClassiPy
 
 category=Raster
 changelog=
+    0.4.0 - Compatible with QGIS 4
     0.3.5 - Fixed Shapely bug
     0.3.4 - Fixed bug with brush tool over band change
     0.3.3 - Fixed layers directory creation
@@ -38,4 +39,4 @@ deprecated=False
 server=False
 hasProcessingProvider=False
 
-plugin_dependencies=numpy<2.0,pandas,shapely
+plugin_dependencies=numpy,pandas,shapely

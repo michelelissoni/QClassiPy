@@ -19,6 +19,8 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.PyQt.QtGui import QIcon, QFontDatabase, QFont
 from qgis.PyQt.QtCore import Qt
 
+from qgis.core import Qgis
+
 from .gui.constants import Directories
 
 layer_dir = Directories.Layer
@@ -94,7 +96,7 @@ def checkPackages():
         package_errors.append(type(e).__name__ +':  '+str(e))
         missing_packages.append('osgeo')
         
-    # Currently, osgeo.gdal_array is incompatible with NumPy 2. To catch the error,
+    # In QGIS 3, osgeo.gdal_array is incompatible with NumPy 2. To catch the error,
     # it is necessary to import it in a subprocess.
         
     python_executable, path_exists = get_python_executable()
@@ -106,11 +108,15 @@ def checkPackages():
     
     if result.returncode != 0 :
         package_errors.append(str(result.stderr))
-        try:
-            import numpy
-            if 'numpy' in str(result.stderr) and numpy.__version__>='2' :
-                missing_packages.append("osgeo.gdal_array (needs numpy &lt; 2)")
-        except:
+        if Qgis.QGIS_VERSION_INT < 40000:
+            try:
+                import numpy
+                from packaging.version import Version
+                if 'numpy' in str(result.stderr) and Version(numpy.__version__)>=Version('2') :
+                    missing_packages.append("osgeo.gdal_array (needs numpy &lt; 2)")
+            except:
+                missing_packages.append('osgeo.gdal_array')
+        else:
             missing_packages.append('osgeo.gdal_array')
             
     return missing_packages, package_errors
@@ -181,8 +187,8 @@ class QClassiPy:
             msg = QMessageBox()
             msg.setWindowTitle("Python version")
             msg.setText("Python 3 (preferably &ge;3.10)<br> is needed.")
-            msg.addButton(QMessageBox.Ok)
-            msg.exec_()
+            msg.addButton(QMessageBox.StandardButton.Ok)
+            msg.exec()
             
             return
             
@@ -198,8 +204,8 @@ class QClassiPy:
             msg = QMessageBox()
             msg.setWindowTitle("Missing packages")
             msg.setText("Install or fix these Python packages<br>and restart QGIS.<br><br>"+package_string+"<br><br><a href='https://github.com/michelelissoni/QClassiPy/blob/main/docs/dependencies.md'>Help</a>")
-            msg.addButton(QMessageBox.Ok)
-            msg.exec_()
+            msg.addButton(QMessageBox.StandardButton.Ok)
+            msg.exec()
             
             return
             
@@ -216,5 +222,5 @@ class QClassiPy:
 
         self.dock = QClassiPyDockWidget(tab_clicked = action_clicked, font = self.best_font)
         
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dock)
+        self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
         

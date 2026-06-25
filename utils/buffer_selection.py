@@ -13,7 +13,7 @@ The BufferSelectionTool controls the brush and erase tools.
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor
 
-from qgis.core import QgsGeometry, QgsWkbTypes
+from qgis.core import QgsGeometry, Qgis
 from qgis.gui import QgsMapTool, QgsRubberBand
 
 from ..gui.constants import Colors
@@ -29,7 +29,7 @@ class BufferSelectionTool(QgsMapTool):
         super().__init__(canvas)
         self.canvas = canvas
         self.layer = layer # Layer which the brush will select
-        self.buffer_size = buffer_size/2*resolution
+        self.buffer_size = (buffer_size/2-0.25)*resolution
         self.is_drawing = False
         self.points = []
         self.rubber_band = None
@@ -39,7 +39,7 @@ class BufferSelectionTool(QgsMapTool):
     
         """When the left mouse button is pressed """
     
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.is_drawing = True
             self.points = [] # Brush path (in layer coordinates)
             self.rubber_band = self.create_rubber_band() # Brush trace (in map coordinates)
@@ -58,7 +58,7 @@ class BufferSelectionTool(QgsMapTool):
         """ When the mouse button is released, the features in the buffer are selected
             and the trace disappears."""
     
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.is_drawing = False
 
             self.select_features_within_buffer()
@@ -81,9 +81,10 @@ class BufferSelectionTool(QgsMapTool):
             return
         
         line_geometry = QgsGeometry.fromPolylineXY(self.points)
+
         buffer_geometry = line_geometry.buffer(self.buffer_size, 5)
         self.buffer = buffer_geometry # Brush buffer (in layer coordinates, necessary to select pixels when 
-                                      # the layer CRS does not match the map CRS
+                                      # the layer CRS does not match the map CRS)
         
         # The brush trace is in map coordinates, so that it can be displayed in QGIS
         
@@ -116,7 +117,7 @@ class BufferSelectionTool(QgsMapTool):
     
         """Symbology for the brush trace."""
     
-        rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PolygonGeometry)
+        rubber_band = QgsRubberBand(self.canvas, Qgis.GeometryType.Polygon)
         rubber_color = QColor(Colors.Brush)
         rubber_color.setAlphaF(0.3)
         rubber_band.setColor(rubber_color)

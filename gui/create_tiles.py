@@ -93,8 +93,8 @@ class QClassiPyCreateTiles(QWidget):
         
         self.ui.band_table.setRowHeight(0,20)
         self.ui.band_table.setColumnWidth(0,70)
-        self.ui.band_table.setSelectionMode(QAbstractItemView.MultiSelection)
-        self.ui.band_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.ui.band_table.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        self.ui.band_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         
         # Add/remove band buttons 
         
@@ -112,6 +112,8 @@ class QClassiPyCreateTiles(QWidget):
         """Choose raster browse button"""
     
         fname=QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "")
+        if fname == "":
+            return
         self.browse_dir = os.path.split(fname[0])[0]
         self.ui.raster_choose.setText(fname[0])
         self.ui.raster_err.setHidden(True)
@@ -345,12 +347,15 @@ class QClassiPyCreateTiles(QWidget):
         """Bounds edited"""
 
         # Retrieve bounds in pixel coordinates
+        try:
+            topleft_y = float(self.ui.topleft_y.text())
+            topleft_x = float(self.ui.topleft_x.text())
+            bottomright_y = float(self.ui.bottomright_y.text())
+            bottomright_x = float(self.ui.bottomright_x.text())
+        except:
+            self.boundConvert(True)
+            return
 
-        topleft_y = float(self.ui.topleft_y.text())
-        topleft_x = float(self.ui.topleft_x.text())
-        bottomright_y = float(self.ui.bottomright_y.text())
-        bottomright_x = float(self.ui.bottomright_x.text())
-        
         if self.bounds_crs is not None :
         
             other_to_mask = CoordTransformXY(self.bounds_crs, self.tile_mask_crs)
@@ -367,7 +372,8 @@ class QClassiPyCreateTiles(QWidget):
         bottomright_x = min(self.tile_mask_shape[1], int(bottomright_x))
 
         if topleft_y >= bottomright_y or topleft_x >= bottomright_x :
-            raise ValueError
+            self.boundConvert(True)
+            return
             
         self.tile_bounds = [topleft_y, topleft_x, bottomright_y, bottomright_x]
         self.invalid_bounds = False
@@ -407,7 +413,7 @@ class QClassiPyCreateTiles(QWidget):
         """Predefined button clicked, writing CRS WKT"""
     
         dialog = QgsProjectionSelectionDialog()
-        dialog.exec_()
+        dialog.exec()
 
         crs = dialog.crs()
         wkt = crs.toWkt()
@@ -433,7 +439,7 @@ class QClassiPyCreateTiles(QWidget):
         new_band_name = 'mask'+str(band_index)
         
         new_band_item=QTableWidgetItem(new_band_name)
-        new_band_item.setFlags(new_band_item.flags() | Qt.ItemIsEditable)
+        new_band_item.setFlags(new_band_item.flags() | Qt.ItemFlag.ItemIsEditable)
             
         self.ui.band_table.setItem(band_num, 0, new_band_item)
         band_names.append(new_band_name)

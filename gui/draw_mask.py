@@ -10,7 +10,7 @@ The QClassiPyDrawMask class handles the "Draw mask" tab.
 
 """
 
-from qgis.PyQt.QtCore import Qt, QMetaType, QVariant
+from qgis.PyQt.QtCore import Qt, QMetaType
 from qgis.PyQt.QtWidgets import QWidget, QFileDialog, QColorDialog, QMessageBox, QInputDialog
 from qgis.PyQt.QtGui import QColor, QFont
 
@@ -128,6 +128,8 @@ class QClassiPyDrawMask(QWidget):
         """Load image browse"""
     
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "")
+        if fname == "":
+            return
         browse_dir = os.path.split(fname)[0]
         if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
@@ -145,6 +147,8 @@ class QClassiPyDrawMask(QWidget):
         """Load tile list browse"""
     
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "CSV (*.csv)")
+        if fname == "":
+            return
         browse_dir = os.path.split(fname)[0]
         if os.path.isdir(browse_dir) :
             self.browse_dir =  browse_dir
@@ -158,13 +162,24 @@ class QClassiPyDrawMask(QWidget):
         """Load image select"""
     
         img_filename = self.ui.img_fileload.text()
+
+        self.ui.img_load_group.setEnabled(False)
+        self.ui.list_load_group.setEnabled(False)
+        self.ui.classify_box.setEnabled(False)
         
-        self.reset(img_filename) # The reset() method loads a new polyimage
+        reset = self.reset(img_filename) # The reset() method loads a new polyimage
         
-        self.file_df = None
-        self.file_row = None
-        self.list_filename = None
-        self.ui.list_load_group.setChecked(False)
+        if reset :
+
+            self.file_df = None
+            self.file_row = None
+            self.list_filename = None
+            self.ui.list_load_group.setEnabled(True)
+            self.ui.list_load_group.setChecked(False)
+        else:
+            self.ui.list_load_group.setEnabled(True)
+
+        self.ui.img_load_group.setEnabled(True)
         
     def listCheck(self, list_filename):
     
@@ -183,6 +198,8 @@ class QClassiPyDrawMask(QWidget):
         
         if not all( np.isin(['filename','priority'], list(file_df.columns)) ):
             return False, False, False, file_df
+        
+        file_df['filename'] = file_df['filename'].astype(str)
             
         img_coords_present = all(np.isin(['x', 'y', 'width', 'height'], list(file_df.columns)))
         
@@ -234,6 +251,8 @@ class QClassiPyDrawMask(QWidget):
             
         # Browse for new mask path            
         fname, _ = QFileDialog.getOpenFileName(self, "Open file", self.browse_dir, "")
+        if fname == "":
+            return
         
         browse_dir = os.path.split(fname)[0]
         if os.path.isdir(browse_dir) :
@@ -295,7 +314,7 @@ class QClassiPyDrawMask(QWidget):
         self.ui.classify_box.setEnabled(False)
         
         # Open the tile table
-        qgis.utils.iface.addDockWidget(Qt.RightDockWidgetArea, self.manual_table)
+        qgis.utils.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.manual_table)
         
     def finishLoad(self, row_num, file_df, coords_present, list_filename):
     
@@ -326,13 +345,14 @@ class QClassiPyDrawMask(QWidget):
             self.ui.img_X_edit.setText('')
             self.ui.img_Y_edit.setText('')    
             
-        self.reset(filename) # The reset() method opens the polyimage
+        reset = self.reset(filename) # The reset() method opens the polyimage
         
-        self.file_df = pd.read_csv(list_filename) # Store tile list
-        
-        self.file_row = row_num
-        self.list_filename = list_filename
-        self.ui.img_fileload.setText(filename) # Load image filename
+        if reset :
+            self.file_df = pd.read_csv(list_filename) # Store tile list
+            
+            self.file_row = row_num
+            self.list_filename = list_filename
+            self.ui.img_fileload.setText(filename) # Load image filename
         
         self.ui.list_manual.clicked.connect(self.loadManual) # Reactivate choose tile button
         
@@ -343,7 +363,8 @@ class QClassiPyDrawMask(QWidget):
         if not self.just_started :
             dismantled = self.dismantle() # The dismantle() method removes a previously loaded polyimage
             if not dismantled  :
-                return
+                self.ui.classify_box.setEnabled(True)
+                return False
 
         # Read the raster if it exists and is in a valid format
 
@@ -352,8 +373,9 @@ class QClassiPyDrawMask(QWidget):
             img_ds = gdal.Open(img_filename)
             self.ui.file_err.setHidden(True)
         except:
-            self.ui.file_err.setHidden(False)            
-            return
+            self.ui.file_err.setHidden(False)
+            self.just_started = True            
+            return False
             
         # Get tile bounds
             
@@ -373,7 +395,8 @@ class QClassiPyDrawMask(QWidget):
                 self.img_width = int(width_string)
             except:
                 self.ui.coord_err.setHidden(False)
-                return                
+                self.just_started = True
+                return False                
         else:
             self.img_X = 0
             self.img_Y = 0
@@ -400,8 +423,6 @@ class QClassiPyDrawMask(QWidget):
             top_left_x = transform[0] + transform[1]*self.img_X + transform[2]*self.img_Y
             top_left_y = transform[3] + transform[4]*self.img_X + transform[5]*self.img_Y
             transform = (top_left_x, transform[1], transform[2], top_left_y, transform[4], transform[5])
-            
-            shape = (self.img_height, self.img_width)
             
             crs = img_ds.GetProjection()
             metadata = img_ds.GetMetadata()
@@ -456,7 +477,8 @@ class QClassiPyDrawMask(QWidget):
             
         except:
             self.ui.coord_err.setHidden(False)
-            return 
+            self.just_started = True
+            return False
             
         self.just_started = False
         self.img_saved = True # Changes saved variable
@@ -505,7 +527,7 @@ class QClassiPyDrawMask(QWidget):
         
         categories = pd.DataFrame({'def': np.array([], dtype=str), # Draw value category name (e.g. water, forest, ejecta...)
                                         'index': np.array([], dtype=int), # Value index in Draw value dropdown
-                                        'color': np.array([]), # Value color
+                                        'color': np.array([], dtype=object), # Value color
                                         'null': np.array([], dtype=bool)}, # Is this the null value?
                                         index = pd.MultiIndex.from_arrays([np.array([]), np.array([], dtype=self.type_img)], 
                                                                           names=["band", "value"]) # Each row corresponds to a band and a band value
@@ -553,7 +575,25 @@ class QClassiPyDrawMask(QWidget):
             # Establish a null value if none was already present in the symbology
                 
             if not null_value_appeared :
-                null_value = self.type_img(0) if 0 not in band_values else self.type_img(np.amax(band_values)+1)
+
+                if np.issubdtype(self.type_img, np.integer) :
+                    type_max = int(np.iinfo(self.type_img).max)
+                else:
+                    type_max = None
+
+                max_val = int(np.amax(band_values))
+
+                if 0 not in band_values :
+                    null_value = self.type_img(0)
+                elif type_max is None or max_val + 1 <= type_max :
+                    null_value = self.type_img(max_val + 1)
+                else:
+                    full_range = np.arange(0, type_max + 1, dtype=self.type_img)
+                    free = full_range[~np.isin(full_range, band_values)]
+                    if len(free) == 0 : # Not worth setting up a graceful failure for this right now
+                        raise RuntimeError("All valid values are occupied by classes")
+                    null_value = self.type_img(free[0])
+
                 categories.loc[(band_name,null_value), ['def', 'index', 'color', 'null']] = ['NULL', int(combo_index), QColor(null_color), True]
                 other_band_values = other_band_values[other_band_values!=null_value]
                 combo_index += 1
@@ -652,6 +692,8 @@ class QClassiPyDrawMask(QWidget):
         canvas.setExtent(frame_extent)
         canvas.refresh()
         qgis.utils.iface.setActiveLayer(self.layer)
+
+        return True
         
     def viewSHP(self):
     
@@ -961,9 +1003,10 @@ class QClassiPyDrawMask(QWidget):
         # Priority field: ensures that the polygons that have been changed are drawn over those that have not been changed
         
         if Qgis.QGIS_VERSION_INT < 33800:
+            from qgis.PyQt.QtCore import QVariant
             priority_field = QgsField('priority_rasterize', QVariant.Int)
         else:
-            priority_field = QgsField('priority_rasterize', QMetaType.Int)
+            priority_field = QgsField('priority_rasterize', QMetaType.Type.Int)
 
         self.poly_mask.dataProvider().addAttributes([priority_field])
         self.poly_mask.updateFields()
@@ -1292,7 +1335,7 @@ class QClassiPyDrawMask(QWidget):
             band_categories = self.categories.loc[(band_name,),:]
             band_values = band_categories.index.values
             
-            for table_value in range(0,int(np.amax(band_values)+1)):
+            for table_value in range(0,int(np.amax(band_values))+1):
                 if table_value in band_values:
                     value_color = band_categories.loc[table_value, 'color']
                     is_null = bool(band_categories.loc[table_value, 'null'])
@@ -1338,10 +1381,10 @@ class QClassiPyDrawMask(QWidget):
                 self,
                 "Save mask",
                 "You have not saved your mask. Proceed anyway?",
-                QMessageBox.Ok | QMessageBox.Cancel
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
             )
             
-            nosave_proceed = reply== QMessageBox.Ok
+            nosave_proceed = reply== QMessageBox.StandardButton.Ok
         
             if not nosave_proceed :
                 return False

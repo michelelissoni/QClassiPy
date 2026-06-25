@@ -146,7 +146,7 @@ class QClassiPyDockWidget(QgsDockWidget):
     
         if obj == self.ui.plugin_tabs.tabBar() :
         
-            if event.type() == QEvent.MouseButtonPress:
+            if event.type() == QEvent.Type.MouseButtonPress:
                 index = obj.tabAt(event.pos())
                 
                 self.ui.switching_label.setHidden(False)
